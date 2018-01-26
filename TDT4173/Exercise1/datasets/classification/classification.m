@@ -2,7 +2,7 @@
 training_data1 = csvread('cl_train_1.csv');
 test_data1 = csvread('cl_test_1.csv');
 
-eta = 0.01;      %Learning rate
+eta = 0.1;      %Learning rate
 
 [n_train, d] = size(training_data1(:, 1:end-1));
 x_train = [ ones(n_train, 1), training_data1(:, 1:end-1) ];
@@ -34,7 +34,19 @@ any(~(classes == y_train))
 classes = sigmoid(x_test * w) > 0.5;
 any(~(classes == y_test))
 %}
+
+%% Plot data points
+figure(1)
+plot_scatter(x_train, y_train);
+%plot_scatter(x_test, y_test);
+
+%Plot decision boundary
+x = -w(1)/w(2):0.01:1;
+y = (-x.*w(2)-w(1))./w(3);
+plot(x, y);
+
 %% Plot cross entropy
+figure(2)
 plot(E_train)
 hold on;
 plot(E_test)

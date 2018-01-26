@@ -2,7 +2,7 @@
 training_data1 = csvread('cl_train_1.csv');
 test_data1 = csvread('cl_test_1.csv');
 
-eta = 0.01;      %Learning rate
+eta = 0.1;      %Learning rate
 
 [n_train, d] = size(training_data1(:, 1:end-1));
 x_train = [ ones(n_train, 1), training_data1(:, 1:end-1) ];
@@ -21,10 +21,11 @@ for k = 1:1000
     w = w - eta * gradient';
     
     E_train(k) = cross_entropy(y_train, x_train * w);
-    E_test(k) = cross_entropy(y_test, x_test * w);
+    E_test(k) = cross_entropy(y_test(2:end), x_test(2:end, :) * w);
 end
 
-%% See if the samples have been correctly classified 
+%% See if the samples have been correctly classified
+%{
 %Training
 classes = sigmoid(x_train * w) > 0.5;
 any(~(classes == y_train))
@@ -32,6 +33,16 @@ any(~(classes == y_train))
 %Test
 classes = sigmoid(x_test * w) > 0.5;
 any(~(classes == y_test))
+%}
 
-%% Plot entr
-plot()
+%% Plot data points
+positive = x_train(logical(y), :);
+negative = x_train(~logical(y), :);
+
+plot(positive(:, 1), positive(:, 2))
+plot(negative(:, 1), negative(:, 2))
+
+%% Plot cross entropy
+%plot(E_train)
+%hold on;
+%plot(E_test)

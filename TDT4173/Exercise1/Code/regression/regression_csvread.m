@@ -1,3 +1,4 @@
+% Make the X and y matrices from csv-files
 function [ X, y ] = regression_csvread( file_name )
     training_data = csvread(file_name);
 
@@ -7,4 +8,3 @@ function [ X, y ] = regression_csvread( file_name )
     y = training_data(:, end);
 
 end
-

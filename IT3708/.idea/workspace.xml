@@ -14,16 +14,18 @@
       <file leaf-file-name="mdvrp.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/mdvrp.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="460">
-              <caret line="146" column="37" lean-forward="true" selection-start-line="146" selection-start-column="37" selection-end-line="146" selection-end-column="37" />
+            <state relative-caret-position="68">
+              <caret line="142" column="0" lean-forward="false" selection-start-line="142" selection-start-column="0" selection-end-line="142" selection-end-column="0" />
               <folding>
                 <element signature="e#0#21#0" expanded="true" />
                 <element signature="e#104#188#0" expanded="false" />
-                <element signature="e#2305#2378#0" expanded="false" />
-                <element signature="e#2421#3395#0" expanded="false" />
-                <element signature="e#3434#4746#0" expanded="false" />
-                <element signature="e#5249#5305#0" expanded="false" />
-                <element signature="e#5649#5655#0" expanded="false" />
+                <element signature="e#207#2185#0" expanded="false" />
+                <element signature="e#463#2185#0" expanded="false" />
+                <element signature="e#2589#3564#0" expanded="false" />
+                <element signature="e#3609#4096#0" expanded="false" />
+                <element signature="e#4143#4998#0" expanded="false" />
+                <element signature="e#5826#7140#0" expanded="false" />
+                <element signature="e#8443#8499#0" expanded="false" />
               </folding>
             </state>
           </provider>
@@ -42,6 +44,8 @@
     <findStrings>
       <find>.distances</find>
       <find>self.depot</find>
+      <find>distance_depot</find>
+      <find>self.distance</find>
     </findStrings>
   </component>
   <component name="IdeDocumentHistory">
@@ -177,11 +181,12 @@
           </properties>
         </breakpoint>
       </default-breakpoints>
-      <option name="time" value="55" />
+      <option name="time" value="79" />
     </breakpoint-manager>
     <watches-manager>
       <configuration name="PythonConfigurationType">
         <watch expression="self.depot_data[20]" />
+        <watch expression="run.population[0].chromosome" />
       </configuration>
     </watches-manager>
   </component>
@@ -193,11 +198,13 @@
           <folding>
             <element signature="e#0#21#0" expanded="true" />
             <element signature="e#104#188#0" expanded="false" />
-            <element signature="e#2305#2378#0" expanded="false" />
-            <element signature="e#2421#3395#0" expanded="false" />
-            <element signature="e#3434#4746#0" expanded="false" />
-            <element signature="e#5249#5305#0" expanded="false" />
-            <element signature="e#5649#5655#0" expanded="false" />
+            <element signature="e#207#2185#0" expanded="false" />
+            <element signature="e#463#2185#0" expanded="false" />
+            <element signature="e#2589#3564#0" expanded="false" />
+            <element signature="e#3609#4096#0" expanded="false" />
+            <element signature="e#4143#4998#0" expanded="false" />
+            <element signature="e#5826#7140#0" expanded="false" />
+            <element signature="e#8443#8499#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -217,11 +224,13 @@
           <folding>
             <element signature="e#0#21#0" expanded="true" />
             <element signature="e#104#188#0" expanded="false" />
-            <element signature="e#2305#2378#0" expanded="false" />
-            <element signature="e#2421#3395#0" expanded="false" />
-            <element signature="e#3434#4746#0" expanded="false" />
-            <element signature="e#5249#5305#0" expanded="false" />
-            <element signature="e#5649#5655#0" expanded="false" />
+            <element signature="e#207#2185#0" expanded="false" />
+            <element signature="e#463#2185#0" expanded="false" />
+            <element signature="e#2589#3564#0" expanded="false" />
+            <element signature="e#3609#4096#0" expanded="false" />
+            <element signature="e#4143#4998#0" expanded="false" />
+            <element signature="e#5826#7140#0" expanded="false" />
+            <element signature="e#8443#8499#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -241,11 +250,13 @@
           <folding>
             <element signature="e#0#21#0" expanded="true" />
             <element signature="e#104#188#0" expanded="false" />
-            <element signature="e#2305#2378#0" expanded="false" />
-            <element signature="e#2421#3395#0" expanded="false" />
-            <element signature="e#3434#4746#0" expanded="false" />
-            <element signature="e#5249#5305#0" expanded="false" />
-            <element signature="e#5649#5655#0" expanded="false" />
+            <element signature="e#207#2185#0" expanded="false" />
+            <element signature="e#463#2185#0" expanded="false" />
+            <element signature="e#2589#3564#0" expanded="false" />
+            <element signature="e#3609#4096#0" expanded="false" />
+            <element signature="e#4143#4998#0" expanded="false" />
+            <element signature="e#5826#7140#0" expanded="false" />
+            <element signature="e#8443#8499#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -264,11 +275,13 @@
           <folding>
             <element signature="e#0#21#0" expanded="true" />
             <element signature="e#104#188#0" expanded="false" />
-            <element signature="e#2305#2378#0" expanded="false" />
-            <element signature="e#2421#3395#0" expanded="false" />
-            <element signature="e#3434#4746#0" expanded="false" />
-            <element signature="e#5249#5305#0" expanded="false" />
-            <element signature="e#5649#5655#0" expanded="false" />
+            <element signature="e#207#2185#0" expanded="false" />
+            <element signature="e#463#2185#0" expanded="false" />
+            <element signature="e#2589#3564#0" expanded="false" />
+            <element signature="e#3609#4096#0" expanded="false" />
+            <element signature="e#4143#4998#0" expanded="false" />
+            <element signature="e#5826#7140#0" expanded="false" />
+            <element signature="e#8443#8499#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -280,11 +293,13 @@
           <folding>
             <element signature="e#0#21#0" expanded="true" />
             <element signature="e#104#188#0" expanded="false" />
-            <element signature="e#2305#2378#0" expanded="false" />
-            <element signature="e#2421#3395#0" expanded="false" />
-            <element signature="e#3434#4746#0" expanded="false" />
-            <element signature="e#5249#5305#0" expanded="false" />
-            <element signature="e#5649#5655#0" expanded="false" />
+            <element signature="e#207#2185#0" expanded="false" />
+            <element signature="e#463#2185#0" expanded="false" />
+            <element signature="e#2589#3564#0" expanded="false" />
+            <element signature="e#3609#4096#0" expanded="false" />
+            <element signature="e#4143#4998#0" expanded="false" />
+            <element signature="e#5826#7140#0" expanded="false" />
+            <element signature="e#8443#8499#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -296,11 +311,13 @@
           <folding>
             <element signature="e#0#21#0" expanded="true" />
             <element signature="e#104#188#0" expanded="false" />
-            <element signature="e#2305#2378#0" expanded="false" />
-            <element signature="e#2421#3395#0" expanded="false" />
-            <element signature="e#3434#4746#0" expanded="false" />
-            <element signature="e#5249#5305#0" expanded="false" />
-            <element signature="e#5649#5655#0" expanded="false" />
+            <element signature="e#207#2185#0" expanded="false" />
+            <element signature="e#463#2185#0" expanded="false" />
+            <element signature="e#2589#3564#0" expanded="false" />
+            <element signature="e#3609#4096#0" expanded="false" />
+            <element signature="e#4143#4998#0" expanded="false" />
+            <element signature="e#5826#7140#0" expanded="false" />
+            <element signature="e#8443#8499#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -312,11 +329,13 @@
           <folding>
             <element signature="e#0#21#0" expanded="true" />
             <element signature="e#104#188#0" expanded="false" />
-            <element signature="e#2305#2378#0" expanded="false" />
-            <element signature="e#2421#3395#0" expanded="false" />
-            <element signature="e#3434#4746#0" expanded="false" />
-            <element signature="e#5249#5305#0" expanded="false" />
-            <element signature="e#5649#5655#0" expanded="false" />
+            <element signature="e#207#2185#0" expanded="false" />
+            <element signature="e#463#2185#0" expanded="false" />
+            <element signature="e#2589#3564#0" expanded="false" />
+            <element signature="e#3609#4096#0" expanded="false" />
+            <element signature="e#4143#4998#0" expanded="false" />
+            <element signature="e#5826#7140#0" expanded="false" />
+            <element signature="e#8443#8499#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -328,11 +347,13 @@
           <folding>
             <element signature="e#0#21#0" expanded="true" />
             <element signature="e#104#188#0" expanded="false" />
-            <element signature="e#2305#2378#0" expanded="false" />
-            <element signature="e#2421#3395#0" expanded="false" />
-            <element signature="e#3434#4746#0" expanded="false" />
-            <element signature="e#5249#5305#0" expanded="false" />
-            <element signature="e#5649#5655#0" expanded="false" />
+            <element signature="e#207#2185#0" expanded="false" />
+            <element signature="e#463#2185#0" expanded="false" />
+            <element signature="e#2589#3564#0" expanded="false" />
+            <element signature="e#3609#4096#0" expanded="false" />
+            <element signature="e#4143#4998#0" expanded="false" />
+            <element signature="e#5826#7140#0" expanded="false" />
+            <element signature="e#8443#8499#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -355,16 +376,218 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/mdvrp.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="460">
-          <caret line="146" column="37" lean-forward="true" selection-start-line="146" selection-start-column="37" selection-end-line="146" selection-end-column="37" />
+        <state relative-caret-position="174">
+          <caret line="102" column="0" lean-forward="false" selection-start-line="102" selection-start-column="0" selection-end-line="102" selection-end-column="0" />
           <folding>
             <element signature="e#0#21#0" expanded="true" />
             <element signature="e#104#188#0" expanded="false" />
-            <element signature="e#2305#2378#0" expanded="false" />
-            <element signature="e#2421#3395#0" expanded="false" />
-            <element signature="e#3434#4746#0" expanded="false" />
-            <element signature="e#5249#5305#0" expanded="false" />
-            <element signature="e#5649#5655#0" expanded="false" />
+            <element signature="e#207#2185#0" expanded="false" />
+            <element signature="e#463#2185#0" expanded="false" />
+            <element signature="e#2589#3564#0" expanded="false" />
+            <element signature="e#3609#4096#0" expanded="false" />
+            <element signature="e#4143#4998#0" expanded="false" />
+            <element signature="e#5826#7140#0" expanded="false" />
+            <element signature="e#8443#8499#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/mdvrp.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#21#0" expanded="true" />
+            <element signature="e#104#188#0" expanded="false" />
+            <element signature="e#207#2185#0" expanded="false" />
+            <element signature="e#463#2185#0" expanded="false" />
+            <element signature="e#2589#3564#0" expanded="false" />
+            <element signature="e#3609#4096#0" expanded="false" />
+            <element signature="e#4143#4998#0" expanded="false" />
+            <element signature="e#5826#7140#0" expanded="false" />
+            <element signature="e#8443#8499#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Program Files (x86)/Python27/Lib/random.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3451">
+          <caret line="203" column="0" lean-forward="false" selection-start-line="203" selection-start-column="0" selection-end-line="203" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/mdvrp.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#21#0" expanded="true" />
+            <element signature="e#104#188#0" expanded="false" />
+            <element signature="e#207#2185#0" expanded="false" />
+            <element signature="e#463#2185#0" expanded="false" />
+            <element signature="e#2589#3564#0" expanded="false" />
+            <element signature="e#3609#4096#0" expanded="false" />
+            <element signature="e#4143#4998#0" expanded="false" />
+            <element signature="e#5826#7140#0" expanded="false" />
+            <element signature="e#8443#8499#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Program Files (x86)/Python27/Lib/random.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="5075">
+          <caret line="203" column="0" lean-forward="false" selection-start-line="203" selection-start-column="0" selection-end-line="203" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/mdvrp.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#21#0" expanded="true" />
+            <element signature="e#104#188#0" expanded="false" />
+            <element signature="e#207#2185#0" expanded="false" />
+            <element signature="e#463#2185#0" expanded="false" />
+            <element signature="e#2589#3564#0" expanded="false" />
+            <element signature="e#3609#4096#0" expanded="false" />
+            <element signature="e#4143#4998#0" expanded="false" />
+            <element signature="e#5826#7140#0" expanded="false" />
+            <element signature="e#8443#8499#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$APPLICATION_HOME_DIR$/helpers/pydev/pydevd.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="39875">
+          <caret line="1595" column="0" lean-forward="false" selection-start-line="1595" selection-start-column="0" selection-end-line="1595" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/mdvrp.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#21#0" expanded="true" />
+            <element signature="e#104#188#0" expanded="false" />
+            <element signature="e#207#2185#0" expanded="false" />
+            <element signature="e#463#2185#0" expanded="false" />
+            <element signature="e#2589#3564#0" expanded="false" />
+            <element signature="e#3609#4096#0" expanded="false" />
+            <element signature="e#4143#4998#0" expanded="false" />
+            <element signature="e#5826#7140#0" expanded="false" />
+            <element signature="e#8443#8499#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/mdvrp.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#21#0" expanded="true" />
+            <element signature="e#104#188#0" expanded="false" />
+            <element signature="e#207#2185#0" expanded="false" />
+            <element signature="e#463#2185#0" expanded="false" />
+            <element signature="e#2589#3564#0" expanded="false" />
+            <element signature="e#3609#4096#0" expanded="false" />
+            <element signature="e#4143#4998#0" expanded="false" />
+            <element signature="e#5826#7140#0" expanded="false" />
+            <element signature="e#8443#8499#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/mdvrp.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#21#0" expanded="true" />
+            <element signature="e#104#188#0" expanded="false" />
+            <element signature="e#207#2185#0" expanded="false" />
+            <element signature="e#463#2185#0" expanded="false" />
+            <element signature="e#2589#3564#0" expanded="false" />
+            <element signature="e#3609#4096#0" expanded="false" />
+            <element signature="e#4143#4998#0" expanded="false" />
+            <element signature="e#5826#7140#0" expanded="false" />
+            <element signature="e#8443#8499#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/mdvrp.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#21#0" expanded="true" />
+            <element signature="e#104#188#0" expanded="false" />
+            <element signature="e#207#2185#0" expanded="false" />
+            <element signature="e#463#2185#0" expanded="false" />
+            <element signature="e#2589#3564#0" expanded="false" />
+            <element signature="e#3609#4096#0" expanded="false" />
+            <element signature="e#4143#4998#0" expanded="false" />
+            <element signature="e#5826#7140#0" expanded="false" />
+            <element signature="e#8443#8499#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/mdvrp.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#21#0" expanded="true" />
+            <element signature="e#104#188#0" expanded="false" />
+            <element signature="e#207#2185#0" expanded="false" />
+            <element signature="e#463#2185#0" expanded="false" />
+            <element signature="e#2589#3564#0" expanded="false" />
+            <element signature="e#3609#4096#0" expanded="false" />
+            <element signature="e#4143#4998#0" expanded="false" />
+            <element signature="e#5826#7140#0" expanded="false" />
+            <element signature="e#8443#8499#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Program Files (x86)/Python27/Lib/random.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3349">
+          <caret line="203" column="0" lean-forward="false" selection-start-line="203" selection-start-column="0" selection-end-line="203" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$APPLICATION_HOME_DIR$/helpers/pydev/pydevd.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="178">
+          <caret line="1022" column="0" lean-forward="false" selection-start-line="1022" selection-start-column="0" selection-end-line="1022" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/mdvrp.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="68">
+          <caret line="142" column="0" lean-forward="false" selection-start-line="142" selection-start-column="0" selection-end-line="142" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#21#0" expanded="true" />
+            <element signature="e#104#188#0" expanded="false" />
+            <element signature="e#207#2185#0" expanded="false" />
+            <element signature="e#463#2185#0" expanded="false" />
+            <element signature="e#2589#3564#0" expanded="false" />
+            <element signature="e#3609#4096#0" expanded="false" />
+            <element signature="e#4143#4998#0" expanded="false" />
+            <element signature="e#5826#7140#0" expanded="false" />
+            <element signature="e#8443#8499#0" expanded="false" />
           </folding>
         </state>
       </provider>

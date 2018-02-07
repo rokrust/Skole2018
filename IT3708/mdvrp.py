@@ -35,8 +35,8 @@ class Data:
             self.n_vehicles = line[0]
             self.n_customers = line[1]
             self.n_depots = line[2]
-            self.distance = [[0 for x in range(self.n_customers)] for y in range(self.n_customers)]
-            self.distance_depot = [[0 for x in range(self.n_customers)] for y in range(self.n_depots)]
+            self.distances = [[0 for x in range(self.n_customers)] for y in range(self.n_customers)]
+            self.distances_depot = [[0 for x in range(self.n_customers)] for y in range(self.n_depots)]
 
             # Store the depot specific data
             for t in range(self.n_depots):
@@ -61,19 +61,24 @@ class Data:
         #Calculate distance matrix
         for n_row in range(self.n_customers):
             for n_col in range(n_row):
-                self.distance[n_row][n_col] = dist(self.customer_positions[n_row], self.customer_positions[n_col])
-                self.distance[n_col][n_row] = self.distance[n_row][n_col]
+                self.distances[n_row][n_col] = dist(self.customer_positions[n_row], self.customer_positions[n_col])
+                self.distances[n_col][n_row] = self.distances[n_row][n_col]
 
             for depot in range(self.n_depots):
-                self.distance_depot[depot][n_row] = dist(self.customer_positions[n_row], self.depot_positions[depot])
+                self.distances_depot[depot][n_row] = dist(self.customer_positions[n_row], self.depot_positions[depot])
 
 
 
 # A single solution to the the problem
 class Phenotype:
     routes = []
+    chromosome = []
+    constraint_violations = 0
+
     def __init__(self, n_depots, n_vehicles):
-        self.routes = [[[] for x in range(n_vehicles) ] for y in range(n_depots)]
+        #self.routes = [[[] for x in range(n_vehicles) ] for y in range(n_depots)]
+        self.routes = [[] for x in range(n_depots)]
+        self.chromosome = [None for x in range(n_depots)]
 
     def greedy_init(self, data):
         # Group customers to their closest depot
@@ -82,7 +87,7 @@ class Phenotype:
         grouped_customers = [[] for x in range(data.n_depots)]
         for customer in range(data.n_customers):
             for depot in range(data.n_depots):
-                current_distance = data.distance_depot[depot][customer]
+                current_distance = data.distances_depot[depot][customer]
                 if current_distance < prev_distance:
                     closest_depot = depot
                     prev_distance = current_distance
@@ -100,14 +105,71 @@ class Phenotype:
                     if len(grouped_customers[depot]) == 0:
                         break
 
-    def fitness(self, data):
+    def permuted_init(self, data):
+        # Group customers to their closest depot
+        n = data.n_customers // data.n_depots
+        customers = list(range(1, data.n_customers+1))
+        shuffle(customers)
+
+        # Award n_customers / n_depots customers to each depot
+        for depots in range(data.n_depots-1):
+            self.chromosome[depots] = list(customers[-n:])
+            del customers[-n:]
+
+        # In case the amount of customers are not divisible by n_depots
+        self.chromosome[-1] = list(customers)
+
+    def schedule_routes(self, data):
+        for depot in range(data.n_depots):
+            duration_limit = data.depot_data[depot][0]
+            demand_limit = data.depot_data[depot][1]
+            total_duration = 0
+            total_demand = 0
+
+            if duration_limit == 0:
+                duration_limit = 9999999
+
+            for i in range(len(self.chromosome)):
+                customer = self.chromosome[depot][i]-1
+                total_duration += data.customer_data[customer][0]
+                total_demand += data.customer_data[customer][1]
+
+                if total_duration > duration_limit or total_demand > demand_limit:
+                    self.routes[depot].append(i - 1)  # store the index of the last customer in the route
+
+            # Check constraint violations
+            if data.n_vehicles < len(self.routes[depot]):
+                self.constraint_violations += 1
+
+    def determine_constraint_violations(self, data):
+        for depot in range(data.n_depots):
+            duration_limit = data.depot_data[depot][0]
+            demand_limit = data.depot_data[depot][1]
+            total_duration = 0
+            total_demand = 0
+            constraint_violations = 0
+
+            if duration_limit == 0:
+                duration_limit = 9999999
+
+            for i in range(len(self.chromosome)):
+                customer = self.chromosome[depot][i]-1
+                total_duration += data.customer_data[customer][0]
+                total_demand += data.customer_data[customer][1]
+
+            if total_duration > duration_limit or total_demand > demand_limit:
+                constraint_violations += 1
+
+        return constraint_violations
+
+    def fitness_with_check(self, data):
         # Calculate total route distance for every vehicle
         total_distance = 0
         for depot in range(data.n_depots):
             for vehicle in range(data.n_vehicles):
                 # Distance from depot to customer
                 prev_customer = self.routes[depot][vehicle][0]
-                route_distance = data.distance_depot[depot][prev_customer]
+                route_distance = data.distances_depot[depot][prev_customer]
                 route_duration = data.customer_data[prev_customer][0]
                 route_demand = data.customer_data[prev_customer][1]
 
@@ -124,10 +186,33 @@ class Phenotype:
                 if route_demand > data.depot_data[depot][1] and data.depot_data[depot][1] != 0:
                     route_distance += 100
 
-                route_distance += data.distance_depot[depot][prev_customer]
+                route_distance += data.distances_depot[depot][prev_customer]
                 total_distance += route_distance
 
         return total_distance
+
+    def fitness(self, data):
+        # Calculate total route distance for every vehicle
+        total_distance = 0
+        start = 0
+        for depot in range(data.n_depots):
+
+            # Distance from depot to customer
+            prev_customer = self.chromosome[depot][start]
+            route_distance = data.distances_depot[depot][prev_customer]
+
+            # Distance between customers
+            stop = self.routes[depot]
+            for customer in self.chromosome[depot][start:stop]:
+                route_distance += data.distance[customer][prev_customer]
+                prev_customer = customer
+
+
+            total_distance += route_distance + data.distances_depot[depot][prev_customer]
+
+            start = stop + 1
+
+        return total_distance + self.constraint_violations*100
 
     def _mutate(self):
         pass
@@ -142,7 +227,7 @@ class GeneticAlgorithm:
     def __init__(self, data, population_size):
         for individual in range(population_size):
             self.population.append(Phenotype(data.n_depots, data.n_vehicles))
-            self.population[-1].greedy_init(data)
+            self.population[-1].permuted_init(data)
 
     def create_next_generation(self):
         pass
@@ -167,10 +252,5 @@ elitism_rate = 0.1
 run = GeneticAlgorithm(data, 3)
 
 for i in range(3):
+    run.population[i].schedule_routes(data)
     print(run.population[i].fitness(data))
-# TODO
-    # make fitness function
-    # make initial population
-    # implement mutations
-    # implement crossover
-    # define phenotype

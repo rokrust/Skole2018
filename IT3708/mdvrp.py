@@ -5,8 +5,8 @@ from random import randint
 from random import random
 from random import choice
 from copy import deepcopy
-from bisect import insort
 from math import floor
+from numpy.random import choice as npChoice
 
 
 class Position:
@@ -97,11 +97,12 @@ class Phenotype:
 
             n_customers_at_depot = n // data.n_vehicles
             for vehicles in range(data.n_vehicles):
-                self.chromosome[depots][vehicles] = list(customers_at_depot[-n_customers_at_depot:])
+                self.chromosome[depots][vehicles].extend(list(customers_at_depot[-n_customers_at_depot:]))
                 del customers_at_depot[-n_customers_at_depot:]
 
         # In case the amount of customers are not divisible by n_depots
-        self.chromosome[-1][-1].extend(customers_at_depot)
+        self.chromosome[-1][-1].extend(customers)
+        pass
 
     def _constraint_violations(self, data):
         constraint_violations = 0
@@ -125,14 +126,14 @@ class Phenotype:
 
         return constraint_violations
 
-    def fitness(self, data):
+    def calculate_fitness(self, data):
         # Calculate total route distance for every vehicle
         total_distance = 0
         start = 0
         for depot in range(data.n_depots):
             for vehicle in range(data.n_vehicles):
                 route = self.chromosome[depot][vehicle]
-                total_distance += self._calculate_route_distance(route, depot)
+                total_distance += self._calculate_route_distance(route, depot, data)
 
         self.fitness = total_distance + self._constraint_violations(data)*100
 
@@ -144,12 +145,14 @@ class Phenotype:
 
             if p < 0.333333334:
                 self._mutate_intra_swap(data, depot)
+                pass
             elif p < 0.666666667:
                 self._mutate_reversal(data, depot)
                 pass
 
             else:
                 self._mutate_inter_swap(data)
+                pass
 
             return 1
         return 0
@@ -159,6 +162,10 @@ class Phenotype:
         depot2 = randint(0, data.n_depots - 1)
         vehicle1 = randint(0, data.n_vehicles - 1)
         vehicle2 = randint(0, data.n_vehicles - 1)
+
+        if len(self.chromosome[depot1][vehicle1]) == 0 or len(self.chromosome[depot2][vehicle2]) == 0:
+            return
+
         customer1 = randint(0, len(self.chromosome[depot1][vehicle1]) - 1)
         customer2 = randint(0, len(self.chromosome[depot2][vehicle2]) - 1)
 
@@ -169,8 +176,13 @@ class Phenotype:
     def _mutate_intra_swap(self, data, depot):
         vehicle1 = randint(0, data.n_vehicles - 1)
         vehicle2 = randint(0, data.n_vehicles - 1)
+        if len(self.chromosome[depot][vehicle1]) == 0 or len(self.chromosome[depot][vehicle2]) == 0:
+            return
+
+
         customer1 = randint(0, len(self.chromosome[depot][vehicle1]) - 1)
         customer2 = randint(0, len(self.chromosome[depot][vehicle2]) - 1)
+
 
         temp = self.chromosome[depot][vehicle1][customer1]
         self.chromosome[depot][vehicle1][customer1] = self.chromosome[depot][vehicle2][customer2]
@@ -200,28 +212,15 @@ class Phenotype:
             self.chromosome[depot][vehicle] = routes[start:stop]
             start = stop
 
-    def _mutate_intra_section_swap(self):
-        depot1 = randint(0, data.n_depots - 1)
-        depot2 = randint(0, data.n_depots - 1)
-        vehicle1 = randint(0, data.vehicles - 1)
-        vehicle2 = randint(0, data.vehicles - 1)
-
-        route_length = []
-        routes = []
-        for route in self.chromosome[depot1]:
-            route_length.append(len(route))
-            routes.extend(route)
-
-        cutpoint_start = randint(0, len(routes))
-        cutpoint_stop = randint(cutpoint_start, len(routes))
-
     def _calculate_route_distance(self, route, depot, data):
-
+        if len(route) == 0:
+            return 0
 
         # Distance from depot to customer
         route_length = 0
         prev_customer = route[0]
         for customer in route[1:]:
+
             # Distance between customers
             route_length += data.distances[customer][prev_customer]
             prev_customer = customer
@@ -229,77 +228,98 @@ class Phenotype:
         depot_distance = data.distances_depot[depot][route[0]] + data.distances_depot[depot][route[-1]]
         return route_length + depot_distance
 
-    def calculate_insertion_cost(self, route, depot, customer):
+    def calculate_best_insertion(self, route, depot, customer, data):
         if len(route) == 0:
-            return (self._calculate_route_distance(route, depot), 0)
+            return data.distances_depot[depot][customer]*2, 0
 
-        route_iter = list(route)
-        min_distance = 999999
-        min_index = 0
-        for i in range(len(route)):
-            route_iter.insert(i, customer)
-            distance = self._calculate_route_distance(route, depot)
-            if distance < min_distance:
-                min_distance = distance
-                min_index = i
-            del route_iter[i]
+        # Insert customer into every possible location
+        shortest_length = data.distances_depot[depot][customer] + data.distances[customer][route[0]]
+        shortest_length_index = 0
 
-        return (min_distance, min_index)
+        for i in range(1, len(route)-1):
+            next_customer = route[i+1]
+            prev_customer = route[i-1]
+            added_length = data.distances[prev_customer][customer] + data.distances[customer][next_customer]
+
+            if added_length < shortest_length:
+                shortest_length = added_length
+                shortest_length_index = i
+
+        # See if appending is best
+        last_length = data.distances[route[-1]][customer] + data.distances_depot[depot][customer]
+        if last_length < shortest_length:
+            shortest_length = last_length
+            shortest_length_index = len(route)
+
+        return shortest_length, shortest_length_index
+
+    def _remove_customers(self, route, data):
+
 
     def recombine(self, p2, data):
         depot_target = randint(0, data.n_depots - 1)
         vehicle1 = randint(0, data.n_vehicles - 1)
         vehicle2 = randint(0, data.n_vehicles - 1)
 
-        route1 = self.chromosome[depot_target][vehicle1]
-        route2 = self.chromosome[depot_target][vehicle2]
+        route1 = list(self.chromosome[depot_target][vehicle1])
+        route2 = list(p2.chromosome[depot_target][vehicle2])
 
         c1 = deepcopy(self)
         c2 = deepcopy(p2)
 
+        # Remove customer of the chosen crossover routes from the children
         for depot in range(data.n_depots):
             for vehicle in range(data.n_vehicles):
 
-                # Remove customer of the chosen crossover routes from the children
                 # Child 1
-                for customer in range(len(c1.chromosome[depot][vehicle])):
+                customer = 0
+                while customer < len(c1.chromosome[depot][vehicle]):
                     if c1.chromosome[depot][vehicle][customer] in route2:
                         del c1.chromosome[depot][vehicle][customer]
+                        customer -= 1
+
+                    customer += 1
 
                 # Child 2
-                for customer in range(len(c2.chromosome[depot][vehicle])):
+                customer = 0
+                while customer < len(c2.chromosome[depot][vehicle]):
                     if c2.chromosome[depot][vehicle] in route1:
                         del c2.chromosome[depot][vehicle][customer]
+                        customer -= 1
+
+                    customer += 1
 
         # Insert customers where route distance is minimized
-        min_distance1 = 999999999
-        min_index1 = 0
-        min_distance2 = 999999999
-        min_index2 = 0
-        insertion_vehicle1 = 0
-        insertion_vehicle2 = 0
+        min_distance = 999999999
+        min_index1 = [0 for i in range(len(route2))]
+        min_index2 = [0 for i in range(len(route1))]
+        insertion_vehicle1 = [0 for i in range(len(route2))]
+        insertion_vehicle2 = [0 for i in range(len(route1))]
         for vehicle in range(data.n_vehicles):
 
-            insertion_route1 = c1.chromosome[depot_target][vehicle]
-            for customer in route2:
+            insertion_route = c1.chromosome[depot_target][vehicle]
+            for customer in range(len(route2)):
 
-                distance1, index1 = c1.calculate_insertion_cost(insertion_route1, depot_target, customer)
-                if distance1 < min_distance1:
-                    insertion_vehicle1 = vehicle
-                    min_distance1 = distance1
-                    min_index1 = index1
+                distance, index = c1.calculate_best_insertion(insertion_route, depot_target, route2[customer], data)
+                if distance < min_distance:
+                    min_distance = distance
+                    insertion_vehicle1[customer] = vehicle
+                    min_index1[customer] = index
 
-            insertion_route2 = c2.chromosome[depot_target][vehicle]
-            for customer in route1:
+            insertion_route = c2.chromosome[depot_target][vehicle]
+            for customer in range(len(route1)):
 
-                distance2, index2 = c2.calculate_insertion_cost(insertion_route2, depot_target, customer)
-                if distance2 < min_distance2:
-                    insertion_vehicle2 = vehicle
-                    min_distance2 = distance2
-                    min_index2 = index2
+                distance, index = c2.calculate_best_insertion(insertion_route, depot_target, route1[customer], data)
+                if distance < min_distance:
+                    min_distance = distance
+                    insertion_vehicle2[customer] = vehicle
+                    min_index2[customer] = index
 
-        c1.chromosome[depot_target][insertion_vehicle1].insert(min_index1, min_distance1)
-        c2.chromosome[depot_target][insertion_vehicle2].insert(min_index2, min_distance2)
+        for customer in range(len(route2)):
+            c1.chromosome[depot_target][insertion_vehicle1[customer]].insert(min_index1[customer], route2[customer])
+
+        for customer in range(len(route1)):
+            c2.chromosome[depot_target][insertion_vehicle2[customer]].insert(min_index2[customer], route1[customer])
 
         return c1, c2
 
@@ -331,32 +351,59 @@ class GeneticAlgorithm:
             self.population.append(Phenotype(data.n_depots, data.n_vehicles))
             self.population[-1].permuted_init(data)
 
-    def selection(self, elite_percentage):
-        # sort by fitness
-        # Z = [x for _,x in sorted(zip(Y,X))]
-        new_population = list(len(population))
-        n_elites = floor(len(population)*elite_percentage)
+    # Can select same parent multiple times.
+    def selection(self, elite_percentage, population_size, data):
+        sorted_population = []
+        parents = []
+
+        n_elites = int(floor(len(self.population) * elite_percentage))
 
         # Sort population by fitness
-        for individual in population:
-            individual.fitness(data)
-            insort(new_population, individual)
+        for individual in range(len(self.population)):
+            self.population[individual].calculate_fitness(data)
+            insert_into(sorted_population, self.population[individual])
+        elites = sorted_population[:n_elites]
+
+        # Rank selection
+        normalize = len(sorted_population) * (len(sorted_population)-1) / 2.0
+        weights = [(len(sorted_population) - i - 1)/normalize for i in range(len(sorted_population))]
+
+        while len(parents) + len(elites) < population_size:
+            individual = npChoice(sorted_population, p=weights)
+            parents.append(individual)
+
+        return parents, elites
 
 
+    def create_next_generation(self, data, mutation_chance, elite_percentage, population_size):
+        parents, elites = self.selection(elite_percentage, population_size, data)
+        child_population = elites
+        # Pick elite individuals
 
-    def create_next_generation(self, data, mutation_chance):
-        new_population = []
-        selection_list = self.selection()
-        for individual in selection_list:
-            p2 = None
+        for individual in parents:
+            p2 = choice(parents)
             c1, c2 = individual.recombine(p2, data)
             c1.mutate(data, mutation_chance)
             c2.mutate(data, mutation_chance)
+            child_population.extend([c1, c2])
+
+        self.population = child_population
+
+
 
 
 ## Util
 def dist(pos_a, pos_b):
     return sqrt((pos_a.x-pos_b.x)**2 + (pos_a.y-pos_b.y)**2)
+def insert_into(list_a, element):
+    if len(list_a) == 0:
+        list_a.append(element)
+
+    for i in range(len(list_a)):
+        if element > list_a[i]:
+            list_a.insert(i, element)
+            return
+
 
 #####  MAIN  #####
 # Read data
@@ -365,19 +412,18 @@ file_name = "p01"
 data = Data(path + file_name)
 
 ## Run the genetic algorithm
-n_generations = 100
-population = 1000
-mutation_rate = 0.2
-crossover_rate = 0.8
+n_generations = 200
+population = 400
+mutation_rate = 0.02
+crossover_rate = 0.2
 elitism_rate = 0.1
+parent_percentage = 0.3
 
 # Initialize population
 run = GeneticAlgorithm(data, population)
 for generation in range(n_generations):
-    for individual in range(population):
-        run.population[individual].mutate(data, mutation_rate)
+    print generation
+    run.create_next_generation(data, mutation_rate, elitism_rate, population)
 
-
-## TODO add penalty calculation to _calculate_route_distance
-## TODO add handling of empty routes to _calculate_route_distance
-## TODO implement selection (elitism, tourney)
+## TODO fix selection so that a parent is only chosen once
+## TODO make sure population doesn't die out

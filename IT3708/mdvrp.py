@@ -72,11 +72,14 @@ class Data:
         #Calculate distance matrix
         for n_row in range(self.n_customers):
             for n_col in range(n_row):
-                self.distances[n_row][n_col] = dist(self.customer_positions[n_row], self.customer_positions[n_col])
+                self.distances[n_row][n_col] = self.dist(self.customer_positions[n_row], self.customer_positions[n_col])
                 self.distances[n_col][n_row] = self.distances[n_row][n_col]
 
             for depot in range(self.n_depots):
-                self.distances_depot[depot][n_row] = dist(self.customer_positions[n_row], self.depot_positions[depot])
+                self.distances_depot[depot][n_row] = self.dist(self.customer_positions[n_row], self.depot_positions[depot])
+
+    def dist(pos_a, pos_b):
+        return sqrt((pos_a.x - pos_b.x) ** 2 + (pos_a.y - pos_b.y) ** 2)
 
 
 
@@ -240,8 +243,8 @@ class Phenotype:
         depot_distance = data.distances_depot[depot][route[0]] + data.distances_depot[depot][route[-1]]
         return route_length + depot_distance
 
-    #def calculate_best_insertion(self, route, depot, vehicle, customer, data):
-
+    def calculate_best_insertion_new(self, route, depot, vehicle, customer, data):
+        pass
 
     def calculate_best_insertion(self, route, depot, vehicle, customer, data):
         if len(route) == 0:
@@ -438,8 +441,6 @@ class GeneticAlgorithm:
 
 
 ## Util
-def dist(pos_a, pos_b):
-    return sqrt((pos_a.x-pos_b.x)**2 + (pos_a.y-pos_b.y)**2)
 def insert_into(list_a, element):
     if len(list_a) == 0:
         list_a.append(element)

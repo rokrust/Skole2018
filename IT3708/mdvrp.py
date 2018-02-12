@@ -78,7 +78,7 @@ class Data:
             for depot in range(self.n_depots):
                 self.distances_depot[depot][n_row] = self.dist(self.customer_positions[n_row], self.depot_positions[depot])
 
-    def dist(pos_a, pos_b):
+    def dist(self, pos_a, pos_b):
         return sqrt((pos_a.x - pos_b.x) ** 2 + (pos_a.y - pos_b.y) ** 2)
 
 
@@ -147,7 +147,7 @@ class Phenotype:
                 route = self.chromosome[depot][vehicle]
                 total_distance += self._calculate_route_distance(route, depot, data)
 
-        self.fitness = total_distance
+        self.fitness = total_distance+self._constraint_violations(data)*100
 
     def mutate(self, data, mutation_chance):
         p = random()
@@ -211,13 +211,14 @@ class Phenotype:
         if len(routes) < 1:
             pass
 
-        cutpoint_start = randint(1, len(routes))
+        cutpoint_start = randint(0, len(routes))
         cutpoint_stop = randint(cutpoint_start, len(routes))
 
         # Reverse part of the chromosome
-        before = len(routes)
-        routes[cutpoint_start:cutpoint_stop] = routes[cutpoint_stop-1:cutpoint_start-1:-1]
-        after = len(routes)
+        if cutpoint_start > 0:
+            routes[cutpoint_start:cutpoint_stop] = routes[cutpoint_stop-1:cutpoint_start-1:-1]
+        else:
+            routes[cutpoint_start:cutpoint_stop] = routes[cutpoint_stop - 1::-1]
 
         # Split strand into the previous presentation
         start = 0
@@ -243,8 +244,8 @@ class Phenotype:
         depot_distance = data.distances_depot[depot][route[0]] + data.distances_depot[depot][route[-1]]
         return route_length + depot_distance
 
-    def calculate_best_insertion_new(self, route, depot, vehicle, customer, data):
-        pass
+    #def calculate_best_insertion_new(self, route, depot, vehicle, customer, data):
+
 
     def calculate_best_insertion(self, route, depot, vehicle, customer, data):
         if len(route) == 0:
@@ -293,6 +294,27 @@ class Phenotype:
 
                     customer += 1
 
+    def insert_route(self, route, depot, data):
+        # Insert customers where route distance is minimized
+        min_distance = 999999999
+        min_index = [0 for i in range(len(route))]
+        min_vehicle_index = [0 for i in range(len(route))]
+
+        for vehicle in range(data.n_vehicles):
+
+            insertion_route = self.chromosome[depot][vehicle]
+
+            for customer in range(len(route)):
+
+                distance, index = self.calculate_best_insertion(insertion_route, depot, vehicle, route[customer], data)
+                if distance < min_distance:
+                    min_distance = distance
+                    min_vehicle_index[customer] = vehicle
+                    min_index[customer] = index
+
+        for customer in range(len(route)):
+            self.chromosome[depot][min_vehicle_index[customer]].insert(min_index[customer], route[customer])
+
     def recombine(self, p2, data):
         depot_target = randint(0, data.n_depots - 1)
         vehicle1 = randint(0, data.n_vehicles - 1)
@@ -305,59 +327,12 @@ class Phenotype:
         c2 = deepcopy(p2)
 
         # Remove customer of the chosen crossover routes from the children
-        # c1.remove_customers(route2, data)
-        # c2.remove_customers(route1, data)
-        for depot in range(data.n_depots):
-            for vehicle in range(data.n_vehicles):
-
-                # Child 1
-                customer = 0
-                while customer < len(c1.chromosome[depot][vehicle]):
-                    if c1.chromosome[depot][vehicle][customer] in route2:
-                        del c1.chromosome[depot][vehicle][customer]
-                        customer -= 1
-
-                    customer += 1
-
-                customer = 0
-                while customer < len(c2.chromosome[depot][vehicle]):
-                    if c2.chromosome[depot][vehicle][customer] in route1:
-                        del c2.chromosome[depot][vehicle][customer]
-                        customer -= 1
-
-                    customer += 1
+        c1.remove_customers(route2, data)
+        c2.remove_customers(route1, data)
 
         # Insert customers where route distance is minimized
-        min_distance = 999999999
-        min_index1 = [0 for i in range(len(route2))]
-        min_index2 = [0 for i in range(len(route1))]
-        insertion_vehicle1 = [0 for i in range(len(route2))]
-        insertion_vehicle2 = [0 for i in range(len(route1))]
-        for vehicle in range(data.n_vehicles):
-
-            insertion_route = c1.chromosome[depot_target][vehicle]
-            for customer in range(len(route2)):
-
-                distance, index = c1.calculate_best_insertion(insertion_route, depot_target, vehicle, route2[customer], data)
-                if distance < min_distance:
-                    min_distance = distance
-                    insertion_vehicle1[customer] = vehicle
-                    min_index1[customer] = index
-
-            insertion_route = c2.chromosome[depot_target][vehicle]
-            for customer in range(len(route1)):
-
-                distance, index = c2.calculate_best_insertion(insertion_route, depot_target, vehicle, route1[customer], data)
-                if distance < min_distance:
-                    min_distance = distance
-                    insertion_vehicle2[customer] = vehicle
-                    min_index2[customer] = index
-
-        for customer in range(len(route2)):
-            c1.chromosome[depot_target][insertion_vehicle1[customer]].insert(min_index1[customer], route2[customer])
-
-        for customer in range(len(route1)):
-            c2.chromosome[depot_target][insertion_vehicle2[customer]].insert(min_index2[customer], route1[customer])
+        c1.insert_route(route2, depot_target, data)
+        c2.insert_route(route1, depot_target, data)
 
         return c1, c2
 
@@ -398,8 +373,6 @@ class GeneticAlgorithm:
         self.elitism_rate = elitism_rate
         self.population_size = population_size
 
-
-    # Can select same parent multiple times.
     def selection(self, data):
         sorted_population = []
         parents = []
@@ -511,15 +484,30 @@ data = Data(path + file_name)
 n_generations = 300
 population = 400
 mutation_rate = 0.2
-crossover_rate = 0.5
+crossover_rate = 0.8
 elitism_rate = 0.1
 
 # Initialize population
 run = GeneticAlgorithm(data, population, mutation_rate, crossover_rate, elitism_rate)
 
+times_equal = 0
+n = int(run.population_size*elitism_rate)-1
 for generation in range(n_generations):
     print generation
     run.create_next_generation(data)
+
+
+    best_solution = run.population[n].chromosome
+    best_solution_prev = None
+
+    if best_solution == best_solution_prev:
+        times_equal += 1
+        if times_equal > 7 and run.population_size > 200:
+            times_equal = 0
+            run.population_size -= 10
+            n = int(run.population_size * elitism_rate) - 1
+
+    best_solution_prev = best_solution
 
 best_solution = run.population[39].chromosome
 plot_all(best_solution, data)
@@ -527,8 +515,3 @@ plot_all(best_solution, data)
 pass
 ## TODO fix selection so that a parent is only chosen once
 ## TODO make sure population doesn't die out
-
-#[18, 39, 40, 12, 24, 38, 4, 14, 3]
-#[31, 15, 21, 26, 47, 25, 6, 42, 22, 46, 11, 45]
-#[37, 8, 29, 33, 49, 1, 20, 34, 35, 19, 36, 41, 43, 17, 5, 23, 13, 7, 0, 16, 44, 32, 9, 48]
-#[2, 27, 30, 10, 28]

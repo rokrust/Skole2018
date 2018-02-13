@@ -596,7 +596,7 @@ class GeneticAlgorithm:
         fitness_diff = self.calculate_fitness_diff(sorted_population[self.population_size//2:])
         print "\tDiff", fitness_diff
         #Little difference from previous generation
-        if fitness_diff < 1:
+        if fitness_diff < 3:
             self.n_unchanged_fitness += 1
             self.n_changed_fitness = 0
             print "Mutations:", self.mutation_rate
@@ -628,9 +628,9 @@ class GeneticAlgorithm:
         if generation % 25 == 0 and self.population_size > 300:
             self.population_size -= 50
 
-        #if generation % 100 == 0:
-        #    self.judgement_day(data)
-        #    print "\n---------------\tJudgment day!!-----------------\n"
+        if generation % 100 == 0:
+            self.judgement_day(data)
+            print "\n---------------\tJudgment day!!-----------------\n"
 
         print "\tFittest individual:", parents[-1].fitness
 

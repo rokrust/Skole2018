@@ -5,7 +5,7 @@ from random import randint
 from random import random
 from random import choice
 from copy import deepcopy
-from math import floor
+from numpy.random import choice as npChoice
 import matplotlib.pyplot as plt
 
 
@@ -420,6 +420,12 @@ class GeneticAlgorithm:
     tournament_amount = 0
     tournament_size = 0
 
+    n_unchanged_fitness = 0
+    n_changed_fitness = 0
+    prev_fitness = 0
+
+    catastrophy_casulties = 0.1
+
 
     def __init__(self, data, population_size, mutation_rate, crossover_rate, elitism_amount, rank_amount, tournament_size):
         for individual in range(population_size):
@@ -438,25 +444,14 @@ class GeneticAlgorithm:
     def _rank_selection(self, sorted_population):
         parents = []
 
-        # Rank selection
-        weights = [j for j in range(len(sorted_population)) for i in range(j+1)]
-        indexes = range(len(sorted_population))
+        normalize = len(sorted_population) * (len(sorted_population) - 1) / 2.0
+        weights = [i / normalize for i in range(len(sorted_population))]
 
         n_rank_individuals = int(self.population_size * self.rank_amount)
-        while len(parents) < n_rank_individuals:
-            individual = choice(weights)
 
-            parents.append(sorted_population[individual])
-
-            # Every individual can only be chosen once
-            del_start = sum(indexes[:individual+1])
-            del_stop = del_start+individual+1
-            del weights[del_start:del_stop]
-            del sorted_population[individual]
-            indexes[individual] = 0
-
-            for i in range(del_start, len(weights)):
-                weights[i] -= 1
+        while len(parents) < n_rank_individuals :  # Every set of parents create two children
+            individual = npChoice(sorted_population, p=weights)
+            parents.append(individual)
 
         return parents
     def _elitism_selection(self, sorted_population):
@@ -470,7 +465,7 @@ class GeneticAlgorithm:
         for individual in range(n_tournament_individuals):
 
             # Pick a random set of contestants from the population
-            start = randint(0, self.population_size - self.tournament_size)
+            start = randint(0, len(self.population) - self.tournament_size-1)
             temp = self.population[start:start + self.tournament_size]
 
             # Sort contestants
@@ -494,11 +489,40 @@ class GeneticAlgorithm:
         # Select individuals
         parents_rank = self._rank_selection(sorted_population)
         elites = self._elitism_selection(sorted_population)
-        parents_tournament = []#self._tournament_selection()
-
-        print "Best individual:", elites[-1].fitness
+        parents_tournament = self._tournament_selection()
 
         return parents_rank + parents_tournament + elites
+
+    def catastrophic_event(self):
+        n_elites = int(self.population_size * self.elitism_amount)
+
+        if self.n_changed_fitness == 0 and self.catastrophy_casulties > 0.5:
+            print "\tCasulty rate +0.1"
+            self.catastrophy_casulties += 0.1
+
+        elif self.catastrophy_casulties > 0.1:
+            print "\tCasulty rate -0.1"
+            self.catastrophy_casulties -= 0.1
+
+        self.n_unchanged_fitness = 0
+
+        print "\n----------------Catastrophic event!!----------------\n"
+        for i in range(int((self.population_size - n_elites) * self.catastrophy_casulties)):
+            indiv = randint(0, self.population_size - n_elites - 1)
+
+            self.population[indiv] = Phenotype(data)
+            self.population[indiv].permuted_init(data)
+
+        if self.population_size < 800:
+            print "\tPopulation size +100"
+            print "\tMutation rate 0.5"
+            self.population_size += 100
+            self.mutation_rate = 0.5
+    def judgement_day(self, data):
+        n_elites = int(self.population_size * self.elitism_amount)
+        for i in range(len(self.population)-n_elites):
+            population[i].permuted_init(data)
+
 
     def sort_individuals(self, data):
         # Sort population by fitness
@@ -511,9 +535,9 @@ class GeneticAlgorithm:
 
     def create_next_generation(self, generation, parents, data):
         n_elites = int(self.population_size * self.elitism_amount)
-        child_population = parents[-n_elites:]
+        child_population = []
 
-        while len(child_population) < self.population_size:
+        while len(child_population) < self.population_size - n_elites:
             p1 = choice(parents)
             p2 = choice(parents)
 
@@ -544,12 +568,48 @@ class GeneticAlgorithm:
         return child_population
 
     def step(self, generation, data):
+        n_elites = int(self.population_size * self.elitism_amount)
 
         # Select through rank, tournament and elitism
         parents = self.select_individuals()
+        elites = deepcopy(parents[-n_elites:])
 
         # Run genetic operators
         self.population = self.create_next_generation(generation, parents, data)
+        print "\tUnchanged:", self.n_unchanged_fitness
+
+
+        # Dynamic determination of parameters
+        fitness_diff = abs(self.prev_fitness - parents[-1].fitness)
+        if fitness_diff <= 0.1:
+            #self.n_changed_fitness = 0
+            self.n_unchanged_fitness += 1
+
+            if self.n_unchanged_fitness >= 7:
+                self.catastrophic_event()
+
+            if self.n_unchanged_fitness >= 5 and self.mutation_rate < 0.45:
+                print "\tMutation rate +5%"
+                self.mutation_rate += 0.05
+
+        else:
+            self.n_unchanged_fitness = 0
+            self.n_changed_fitness += 1
+
+            if self.n_changed_fitness >= 5 and self.mutation_rate >= 0.05:
+                print "\tMutation rate -1%"
+                self.mutation_rate -= 0.02
+                self.n_changed_fitness = 0
+
+            if self.n_changed_fitness >= 7 and self.population_size > 200:
+                print "\tPopulation size -100"
+                self.population_size -= 100
+
+        self.population.extend(elites)
+        self.prev_fitness = parents[-1].fitness
+        print "\tFittest individual:", self.prev_fitness
+
+
 
 
 
@@ -623,8 +683,8 @@ population = 400
 mutation_rate = 0.15
 crossover_rate = 0.8
 elitism_amount = 0.1
-rank_amount = 0.9
-tournament_size = 10
+rank_amount = 0.8
+tournament_size = 20
 
 #http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.106.8662&rep=rep1&type=pdf
 
@@ -634,7 +694,7 @@ run = GeneticAlgorithm(data, population, \
                        elitism_amount, rank_amount, tournament_size)
 
 for generation in range(n_generations):
-    print generation
+    print "Generation:", generation
     run.step(generation, data)
 
 best_solution = run.population[6]

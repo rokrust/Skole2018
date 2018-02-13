@@ -288,6 +288,19 @@ class Phenotype:
         c1.remove_customers(route2, data)
         c2.remove_customers(route1, data)
 
+        depot1 = randint(0, data.n_depots - 1)
+        depot2 = randint(0, data.n_depots - 1)
+        vehicle1 = randint(0, len(c1.route[depot1]) - 1)
+        vehicle2 = randint(0, len(c2.route[depot2]) - 1)
+        customer1 = randint(0, len(c1.route[depot1][vehicle1]))
+        customer2 = randint(0, len(c2.route[depot2][vehicle2]))
+
+        for customer in route2:
+            c1.route[depot1][vehicle1].insert(customer1, customer)
+        for customer in route1:
+            c2.route[depot2][vehicle2].insert(customer2, customer)
+
+        """
         # In this case, insert customer where cost is minimized regardless of feasibility
         k = random()
         maintain_feasibility = True
@@ -299,7 +312,7 @@ class Phenotype:
             c1.insert_customer(depot, customer, maintain_feasibility, data)
         for customer in route1:
             c2.insert_customer(depot, customer, maintain_feasibility, data)
-
+        """
         return c1, c2
 
     # Inserting and removing customers
@@ -493,37 +506,37 @@ class GeneticAlgorithm:
 
         return parents_rank + parents_tournament + elites
 
-    def catastrophic_event(self):
-        n_elites = int(self.population_size * self.elitism_amount)
+    # Local optimum fixers
+    def prune_individuals(self, data):
 
-        if self.n_changed_fitness == 0 and self.catastrophy_casulties > 0.5:
-            print "\tCasulty rate +0.1"
-            self.catastrophy_casulties += 0.1
+        current_best_fitness = self.population[-1].fitness
+        for individual in range(2, len(self.population)):
+            current_fitness = self.population[-individual].fitness
 
-        elif self.catastrophy_casulties > 0.1:
-            print "\tCasulty rate -0.1"
-            self.catastrophy_casulties -= 0.1
+            # Randomize individual if fitness is equal
+            if current_fitness == current_best_fitness:
+                self.population[-individual].permuted_init(data)
 
-        self.n_unchanged_fitness = 0
-
-        print "\n----------------Catastrophic event!!----------------\n"
-        for i in range(int((self.population_size - n_elites) * self.catastrophy_casulties)):
-            indiv = randint(0, self.population_size - n_elites - 1)
-
-            self.population[indiv] = Phenotype(data)
-            self.population[indiv].permuted_init(data)
-
-        if self.population_size < 800:
-            print "\tPopulation size +100"
-            print "\tMutation rate 0.5"
-            self.population_size += 100
-            self.mutation_rate = 0.5
+            else:
+                current_best_fitness = current_fitness
     def judgement_day(self, data):
-        n_elites = int(self.population_size * self.elitism_amount)
-        for i in range(len(self.population)-n_elites):
-            population[i].permuted_init(data)
+        for i in range(len(self.population)-5):
+            self.population[i].permuted_init(data)
 
 
+
+    def calculate_fitness_diff(self, individuals):
+        # Check difference from previous iteration
+        avg_fitness = 0
+        for i in range(len(individuals)):
+            avg_fitness += individuals[i].fitness
+        avg_fitness /= len(individuals)
+
+        print "\tAverage fitness:", avg_fitness
+        fitness_diff = abs(avg_fitness - self.prev_fitness)
+        self.prev_fitness = avg_fitness
+
+        return fitness_diff
     def sort_individuals(self, data):
         # Sort population by fitness
         sorted_population = []
@@ -576,38 +589,50 @@ class GeneticAlgorithm:
 
         # Run genetic operators
         self.population = self.create_next_generation(generation, parents, data)
-        print "\tUnchanged:", self.n_unchanged_fitness
+        self.population.extend(elites)
 
-
-        # Dynamic determination of parameters
-        fitness_diff = abs(self.prev_fitness - parents[-1].fitness)
-        if fitness_diff <= 0.1:
-            #self.n_changed_fitness = 0
+        sorted_population = self.sort_individuals(data)
+        # Check difference from previous iteration
+        fitness_diff = self.calculate_fitness_diff(sorted_population[self.population_size//2:])
+        print "\tDiff", fitness_diff
+        #Little difference from previous generation
+        if fitness_diff < 1:
             self.n_unchanged_fitness += 1
+            self.n_changed_fitness = 0
+            print "Mutations:", self.mutation_rate
 
-            if self.n_unchanged_fitness >= 7:
-                self.catastrophic_event()
+            if self.n_unchanged_fitness > 5 and self.mutation_rate < 0.7:
+                self.mutation_rate += 0.1
+                print "\tMutation rate +0.02"
 
-            if self.n_unchanged_fitness >= 5 and self.mutation_rate < 0.45:
-                print "\tMutation rate +5%"
-                self.mutation_rate += 0.05
+            if self.n_unchanged_fitness == 10:
+                self.n_unchanged_fitness = 0
+                self.prune_individuals(data)
+                print "\tIndividuals pruned"
+
+            #if self.n_unchanged_fitness > 20:
+            #    self.n_unchanged_fitness = 0
+            #    self.judgement_day(data)
+            #    print "\n---------------\tJudgment day!!-----------------\n"
 
         else:
             self.n_unchanged_fitness = 0
             self.n_changed_fitness += 1
 
-            if self.n_changed_fitness >= 5 and self.mutation_rate >= 0.05:
-                print "\tMutation rate -1%"
-                self.mutation_rate -= 0.02
+
+            if self.n_changed_fitness > 3 and self.mutation_rate > 0.1:
                 self.n_changed_fitness = 0
+                self.mutation_rate -= 0.02
+                print "\tMutation rate -0.02"
 
-            if self.n_changed_fitness >= 7 and self.population_size > 200:
-                print "\tPopulation size -100"
-                self.population_size -= 100
+        if generation % 25 == 0 and self.population_size > 300:
+            self.population_size -= 50
 
-        self.population.extend(elites)
-        self.prev_fitness = parents[-1].fitness
-        print "\tFittest individual:", self.prev_fitness
+        #if generation % 100 == 0:
+        #    self.judgement_day(data)
+        #    print "\n---------------\tJudgment day!!-----------------\n"
+
+        print "\tFittest individual:", parents[-1].fitness
 
 
 
@@ -679,11 +704,11 @@ data = Data(path + file_name)
 
 ## Run the genetic algorithm
 n_generations = 500
-population = 400
-mutation_rate = 0.15
+population = 800
+mutation_rate = 0.5
 crossover_rate = 0.8
 elitism_amount = 0.1
-rank_amount = 0.8
+rank_amount = 0.7
 tournament_size = 20
 
 #http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.106.8662&rep=rep1&type=pdf
@@ -697,7 +722,8 @@ for generation in range(n_generations):
     print "Generation:", generation
     run.step(generation, data)
 
-best_solution = run.population[6]
+best_solution = run.population[-1]
 best_solution.calculate_fitness(data)
+
 print "Final solution:", best_solution.fitness
 plot_all(best_solution, data)

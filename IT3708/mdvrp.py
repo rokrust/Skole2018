@@ -412,8 +412,8 @@ class Phenotype:
             while vehicle < len(self.route[depot]):
                 route = self.route[depot][vehicle]
 
-                if len(route[vehicle]) == 0:
-                    del route[vehicle]
+                if len(route) == 0:
+                    del route
                     vehicle -= 1
 
                 vehicle += 1
@@ -424,8 +424,9 @@ class Phenotype:
                 for vehicle in range(len(self.route[depot])):
                     route = self.route[depot][vehicle]
                     route_length = self._calculate_route_distance(route, depot, data)
-                    line = str(depot + 1) + '\t' + str(vehicle + 1) + '\t' + str(route_length) + '\t0'
-                    self.total_load[depot][vehicle]
+                    line = str(depot + 1) + '\t' + str(vehicle + 1) + \
+                           '\t' + '%.2f' % (route_length+self.total_duration[depot][vehicle]) + '\t' + \
+                            str(self.total_load[depot][vehicle]) + '\t0'
 
                     for customer in route:
                         line = line + " " + str(customer + 1)
@@ -755,5 +756,5 @@ for individual in run.population:
         best_solution = individual
 
 print "Final solution:", best_solution.fitness
-plot_all(best_solution, data)
 best_solution.output_solution(data)
+plot_all(best_solution, data)

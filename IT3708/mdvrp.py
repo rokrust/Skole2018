@@ -402,6 +402,40 @@ class Phenotype:
             for vehicle in range(len(self.route[depot])):
                 self.chromosome[depot].extend(self.route[depot][vehicle])
 
+    def output_solution(self, data):
+        self.calculate_fitness(data)
+        self.schedule_routes(data)
+
+        # Remove all empty roots
+        for depot in range(data.n_depots):
+            vehicle = 0
+            while vehicle < len(self.route[depot]):
+                route = self.route[depot][vehicle]
+
+                if len(route[vehicle]) == 0:
+                    del route[vehicle]
+                    vehicle -= 1
+
+                vehicle += 1
+
+        with open("out.txt", 'w') as f:
+            f.write(str(self.fitness)+'\n')
+            for depot in range(data.n_depots):
+                for vehicle in range(len(self.route[depot])):
+                    route = self.route[depot][vehicle]
+                    route_length = self._calculate_route_distance(route, depot, data)
+                    line = str(depot + 1) + '\t' + str(vehicle + 1) + '\t' + str(route_length) + '\t0'
+                    self.total_load[depot][vehicle]
+
+                    for customer in route:
+                        line = line + " " + str(customer + 1)
+
+                    line += " 0\n"
+                    f.write(line)
+
+
+
+
 
     # Operators
     def __lt__(self, rhs):
@@ -436,8 +470,6 @@ class GeneticAlgorithm:
     n_unchanged_fitness = 0
     n_changed_fitness = 0
     prev_fitness = 0
-
-    catastrophy_casulties = 0.1
 
 
     def __init__(self, data, population_size, mutation_rate, crossover_rate, elitism_amount, rank_amount, tournament_size):
@@ -506,46 +538,6 @@ class GeneticAlgorithm:
 
         return parents_rank + parents_tournament + elites
 
-    # Local optimum fixers
-    def prune_individuals(self, data):
-
-        current_best_fitness = self.population[-1].fitness
-        for individual in range(2, len(self.population)):
-            current_fitness = self.population[-individual].fitness
-
-            # Randomize individual if fitness is equal
-            if current_fitness == current_best_fitness:
-                self.population[-individual].permuted_init(data)
-
-            else:
-                current_best_fitness = current_fitness
-    def judgement_day(self, data):
-        for i in range(len(self.population)-5):
-            self.population[i].permuted_init(data)
-
-
-
-    def calculate_fitness_diff(self, individuals):
-        # Check difference from previous iteration
-        avg_fitness = 0
-        for i in range(len(individuals)):
-            avg_fitness += individuals[i].fitness
-        avg_fitness /= len(individuals)
-
-        print "\tAverage fitness:", avg_fitness
-        fitness_diff = abs(avg_fitness - self.prev_fitness)
-        self.prev_fitness = avg_fitness
-
-        return fitness_diff
-    def sort_individuals(self, data):
-        # Sort population by fitness
-        sorted_population = []
-        for individual in range(len(self.population)):
-            self.population[individual].calculate_fitness(data)
-            insert_into(sorted_population, self.population[individual])
-
-        return sorted_population
-
     def create_next_generation(self, generation, parents, data):
         n_elites = int(self.population_size * self.elitism_amount)
         child_population = []
@@ -579,7 +571,6 @@ class GeneticAlgorithm:
             child_population.extend([c1, c2])
 
         return child_population
-
     def step(self, generation, data):
         n_elites = int(self.population_size * self.elitism_amount)
 
@@ -590,13 +581,16 @@ class GeneticAlgorithm:
         # Run genetic operators
         self.population = self.create_next_generation(generation, parents, data)
         self.population.extend(elites)
+        print "\tFittest individual:", self.population[-1].fitness
 
         sorted_population = self.sort_individuals(data)
+
         # Check difference from previous iteration
         fitness_diff = self.calculate_fitness_diff(sorted_population[self.population_size//2:])
         print "\tDiff", fitness_diff
+
         #Little difference from previous generation
-        if fitness_diff < 3:
+        if fitness_diff < 5:
             self.n_unchanged_fitness += 1
             self.n_changed_fitness = 0
             print "Mutations:", self.mutation_rate
@@ -609,11 +603,6 @@ class GeneticAlgorithm:
                 self.n_unchanged_fitness = 0
                 self.prune_individuals(data)
                 print "\tIndividuals pruned"
-
-            #if self.n_unchanged_fitness > 20:
-            #    self.n_unchanged_fitness = 0
-            #    self.judgement_day(data)
-            #    print "\n---------------\tJudgment day!!-----------------\n"
 
         else:
             self.n_unchanged_fitness = 0
@@ -630,12 +619,46 @@ class GeneticAlgorithm:
 
         if generation % 100 == 0:
             self.judgement_day(data)
+            self.population_size += 100
             print "\n---------------\tJudgment day!!-----------------\n"
 
-        print "\tFittest individual:", parents[-1].fitness
+    # Local optimum fixers
+    def prune_individuals(self, data):
 
+        current_best_fitness = self.population[-1].fitness
+        for individual in range(2, len(self.population)):
+            current_fitness = self.population[-individual].fitness
 
+            # Randomize individual if fitness is equal
+            if current_fitness == current_best_fitness:
+                self.population[-individual].permuted_init(data)
 
+            else:
+                current_best_fitness = current_fitness
+    def judgement_day(self, data):
+        for i in range(len(self.population)-5):
+            self.population[i].permuted_init(data)
+
+    def calculate_fitness_diff(self, individuals):
+        # Check difference from previous iteration
+        avg_fitness = 0
+        for i in range(len(individuals)):
+            avg_fitness += individuals[i].fitness
+        avg_fitness /= len(individuals)
+
+        print "\tAverage fitness:", avg_fitness
+        fitness_diff = abs(avg_fitness - self.prev_fitness)
+        self.prev_fitness = avg_fitness
+
+        return fitness_diff
+    def sort_individuals(self, data):
+        # Sort population by fitness
+        sorted_population = []
+        for individual in range(len(self.population)):
+            self.population[individual].calculate_fitness(data)
+            insert_into(sorted_population, self.population[individual])
+
+        return sorted_population
 
 
 ## Util
@@ -702,14 +725,16 @@ path = "Testing Data/Data Files/"
 file_name = "p01"
 data = Data(path + file_name)
 
+# RECORD 591.15
+
 ## Run the genetic algorithm
 n_generations = 500
-population = 800
+population = 500
 mutation_rate = 0.5
 crossover_rate = 0.8
 elitism_amount = 0.1
-rank_amount = 0.7
-tournament_size = 20
+rank_amount = 0.8
+tournament_size = 40
 
 #http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.106.8662&rep=rep1&type=pdf
 
@@ -724,6 +749,11 @@ for generation in range(n_generations):
 
 best_solution = run.population[-1]
 best_solution.calculate_fitness(data)
+for individual in run.population:
+    individual.calculate_fitness(data)
+    if best_solution.fitness > individual.fitness:
+        best_solution = individual
 
 print "Final solution:", best_solution.fitness
 plot_all(best_solution, data)
+best_solution.output_solution(data)

@@ -1,22 +1,30 @@
-#include "Gentic_algorithm.hpp"
+#include "Genetic_algorithm.hpp"
 
 Phenotype::Phenotype() {
-	this->_prims_algorithm()
+	//this->_prims_algorithm()
 }
 
-Phenotype::Phenotype(unsigned int height, unsigned int width) {
-	this->genotype = cv::Mat(height, width, CV_8U);
+Phenotype::Phenotype(const unsigned int & height, const unsigned int & width) {
+	//this->genotype = cv::Mat(height, width, CV_8U);
 }
 
-void Phenotype::_prims_algorithm() {
+Phenotype::Phenotype(Pixel* image, Genotype genotype, const unsigned int & n_pixels) {
+	bool visited = new bool[n_pixels];
+	std::vector<Segment> current_segment;
+	
+	//current_segment.push_back()
+	//for (int i = 0; i < n_pixels; i++) {
+	//	current_segment
+	//}
+}
+
+void Genotype::create_MST(cv::Mat Image) {
 	
 }
 
-double Phenotype::calculate_overall_deviation(Image* segment, unsigned int* segment_length, unsigned int n_segments) {
-	unsigned int 
-
+double Phenotype::calculate_overall_deviation() {
 	for (int i = 0; i < n_segments; i++) {
-		Image current_segment = segment[i];
+		Segment current_segment = segment[i];
 		unsigned int current_segment_length = segment_length[i];
 
 		unsigned int current_deviation = 0;
@@ -29,6 +37,6 @@ double Phenotype::calculate_overall_deviation(Image* segment, unsigned int* segm
 	}
 }
 
-double Phenotype::calculate_edge_value(Pixel* segment) {
+double Phenotype::calculate_edge_value() {
 
 }

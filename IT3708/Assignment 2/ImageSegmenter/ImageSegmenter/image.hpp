@@ -14,7 +14,9 @@ struct Pixel {
 	Pixel operator-(Pixel p);
 };
 
-struct Index { int x, y; };
+struct Index { 
+	int row, col; 
+};
 
 class Segment {
 private:

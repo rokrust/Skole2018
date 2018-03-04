@@ -7,11 +7,10 @@ enum GRAPH_EDGE_DIR { LEFT = 0, RIGHT, UP, DOWN, NONE };
 
 class Genotype {
 private:
-	GRAPH_EDGE_DIR* edge;
+	GRAPH_EDGE_DIR edge[IMAGE_HEIGHT][IMAGE_WIDTH];
 
 public:
-	Genotype() { edge = nullptr; }
-	Genotype(unsigned int height, unsigned int width) { edge = new GRAPH_EDGE_DIR[height*width]; }
+	Genotype() { }
 	Genotype(cv::Mat Image);
 
 	~Genotype() { delete edge; }
@@ -22,8 +21,11 @@ public:
 	void crossover_two_point(const Genotype& p2, Genotype& c1, Genotype& c2);
 
 	//Overloaded operators
-	GRAPH_EDGE_DIR & operator[](unsigned int index) { return edge[index]; }
-	const GRAPH_EDGE_DIR & operator[](unsigned int index) const { return edge[index]; }
+	GRAPH_EDGE_DIR* operator[](unsigned int row) { return edge[row]; }
+	const GRAPH_EDGE_DIR* operator[](unsigned int row) const { return edge[row]; }
+	//const GRAPH_EDGE_DIR & operator[](unsigned int index) const { return edge[index]; }
+	const GRAPH_EDGE_DIR & operator[](Index index) const { return edge[index.row][index.col]; }
+
 };
 
 class Phenotype {
@@ -32,7 +34,7 @@ private:
 	
 public:
 	Phenotype();
-	Phenotype(Genotype genotype, const Image & image);
+	Phenotype(Genotype genotype);
 	Phenotype(const unsigned int & height, const unsigned int & width);
 
 	// Minimization objectives

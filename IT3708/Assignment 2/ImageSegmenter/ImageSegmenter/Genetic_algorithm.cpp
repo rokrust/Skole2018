@@ -13,6 +13,8 @@ unsigned int next_index(unsigned int current_index, GRAPH_EDGE_DIR dir) {
 		return current_index > IMAGE_WIDTH ? current_index - IMAGE_WIDTH : current_index;
 	case(DOWN):
 		return current_index + IMAGE_WIDTH < IMAGE_WIDTH ? current_index + IMAGE_WIDTH : current_index;
+	case(NONE):
+		return -1;
 	}
 
 }
@@ -40,7 +42,7 @@ Index next_index(Index pos, GRAPH_EDGE_DIR dir) {
 	return { -1, -1 };
 }
 
-Index* get_neighbors(unsigned int row, unsigned int col) {
+Index* get_neighbors(int row, int col) {
 	Index temp[4];
 
 	//temp[0] = next_index(row, col, LEFT);
@@ -61,43 +63,80 @@ Phenotype::Phenotype() {
 	//this->_prims_algorithm()
 }
 
+void PhenotypeGenerator::advance_active_edge(Genotype genotype) {
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			if (!is_part_of_segment[row][col]) {
+				active_edge.push_back({ row, col });
+
+				while (pixel_added) {
+					pixel_added = false;
+
+					//For each pixel at inner edge
+					for (int i = active_edge.size() - 1; i >= 0; i++) {
+						Index current_pixel = active_edge[i];
+						Index* neighbor = get_neighbors(current_pixel.row, current_pixel.col);
+
+						for (int pixel = 0; pixel < 4; pixel++) {
+							Index current_neighbor = neighbor[pixel];
+							if (current_neighbor.is_none()) {
+								continue;
+							}
+
+							Index next_neighbor = next_index(current_neighbor, genotype[current_neighbor.row][current_neighbor.col]);
+							if (next_neighbor.is_none()) {
+								continue;
+							}
+
+							//Add neighbor if it points to the segment
+							if (!is_part_of_segment[current_neighbor.row][current_neighbor.col] &&
+								is_part_of_segment[next_neighbor.row][next_neighbor.col]) {
+								pixel_added = true;
+								is_part_of_segment[current_neighbor.row][current_neighbor.col] = true;
+								active_edge.push_back(current_neighbor);
+							}
+						}
+
+
+						GRAPH_EDGE_DIR dir = genotype[current_pixel.row][current_pixel.col];
+						if (dir != NONE) {
+							Index next_pixel = next_index(current_pixel, dir);
+							if (!(is_part_of_segment[next_pixel.row][next_pixel.col] || next_pixel.is_none())) {
+								pixel_added = true;
+								is_part_of_segment[next_pixel.row][next_pixel.col] = true;
+								active_edge.push_back(next_pixel);
+							}
+
+						}
+
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
+}
+
 Phenotype::Phenotype(const unsigned int & height, const unsigned int & width) {
 	//this->genotype = cv::Mat(height, width, CV_8U);
 }
 
-Phenotype::Phenotype(Genotype genotype) {
-	bool is_part_of_segment[IMAGE_HEIGHT][IMAGE_WIDTH];
-	bool visited[IMAGE_HEIGHT][IMAGE_WIDTH];
-	std::vector<Index>edge;
-	bool pixel_added = true;
-
-	//Init
-	edge.push_back({ 0, 0 });
+PhenotypeGenerator::PhenotypeGenerator() {
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
 			is_part_of_segment[row][col] = false;
 			visited[row][col] = false;
 		}
 	}
+}
 
-	while(pixel_added){
-		pixel_added = false;
-		
-		//For each pixel at edge
-		for (int i = edge.size() - 1; i >= 0 ; i++) {
-			Index current_pixel = edge[i];
-			GRAPH_EDGE_DIR dir = genotype[current_pixel.row][current_pixel.col];
-
-			if (dir != NONE) {
-				Index next_pixel = next_index(current_pixel, dir);
-				if (!is_part_of_segment[next_pixel.row][next_pixel.col] && next_pixel.row != -1) {
-					is_part_of_segment[next_pixel.row][next_pixel.col] = true;
-					edge.push_back(next_pixel);
-				}
-			}
-		}
-
-	}
+Phenotype::Phenotype(Genotype genotype) {
+	PhenotypeGenerator generator;
+	generator.advance_active_edge(genotype);
 	//BFS:
 	//Begin at some pixel
 	//Until no pixels are added:
@@ -120,19 +159,18 @@ Phenotype::Phenotype(Genotype genotype) {
 			//Add each pixel on the way to segmen
 			//if pixel already visited
 				//Merge segments
-
 		//Go to next unvisited pixel and start new segment
 }
 
 //Member functions
 double Phenotype::calculate_overall_deviation() {
-	unsigned int overall_deviation = 0;
+	double overall_deviation = 0;
 
 	for (std::vector<Segment>::iterator current_segment = segment.begin();
 		current_segment != segment.end();
 		current_segment++) {
 
-		unsigned int current_deviation = 0;
+		double current_deviation = 0;
 		Pixel current_centroid = current_segment->calculate_centroid();
 		
 		for (std::vector<Pixel>::iterator pixel = current_segment->begin();
@@ -150,7 +188,7 @@ double Phenotype::calculate_overall_deviation() {
 }
 
 double Phenotype::calculate_edge_value() {
-
+	return 0.0;
 }
 
 /* Genotype */
@@ -164,69 +202,71 @@ void Genotype::mutate() {
 }
 
 void Genotype::crossover_one_point(const Genotype& p2, Genotype& c1, Genotype& c2) {
-	unsigned int row_point = rand() % IMAGE_HEIGHT;
-	unsigned int col_point = rand() % IMAGE_WIDTH;
+	const GRAPH_EDGE_DIR* p2_ptr = p2[0];
+	GRAPH_EDGE_DIR* c1_ptr = c1[0];
+	GRAPH_EDGE_DIR* c2_ptr = c2[0];
 	
-	for (unsigned int row = 0; row < row_point-1; row++) {
-		for (unsigned int col = 0; col < IMAGE_WIDTH; col++) {
-			c1[row][col] = (*this)[row][col];
-			c2[row][col] = p2[row][col];
-		}
+	unsigned int crossover_point = rand() % N_PIXELS;
+	
+	for(int i = 0; i < crossover_point; i++){
+		c1_ptr[i] = (*edge)[i];
+		c2_ptr[i] = p2_ptr[i];
 	}
 
-	for (unsigned int row = row_point; row < IMAGE_HEIGHT; row++) {
-		for (unsigned int col = 0; col < IMAGE_WIDTH; col++) {
-			c1[row][col] = p2[row][col];
-			c2[row][col] = (*this)[row][col];
-		}
+	for (int i = crossover_point; i < N_PIXELS; i++) {
+		c1_ptr[i] = p2_ptr[i];
+		c2_ptr[i] = (*edge)[i];
 	}
+	
 }
 
 void Genotype::crossover_two_point(const Genotype& p2, Genotype& c1, Genotype& c2) {
-	unsigned int row_point2 = rand() % IMAGE_HEIGHT;
-	unsigned int row_point1 = rand() % row_point1;
-	unsigned int col_point1 = rand() % IMAGE_WIDTH;
-	unsigned int col_point2 = rand() % IMAGE_WIDTH;
+	const GRAPH_EDGE_DIR* p2_ptr = p2[0];
+	GRAPH_EDGE_DIR* c1_ptr = c1[0];
+	GRAPH_EDGE_DIR* c2_ptr = c2[0];
 
-	for (unsigned int row = 0; row < row_point1 - 1; row++) {
-		for (unsigned int col = 0; col < IMAGE_WIDTH; col++) {
-			c1[row][col] = (*this)[row][col];
-			c2[row][col] = p2[row][col];
-		}
+	unsigned int crossover_point2 = rand() % N_PIXELS;
+	unsigned int crossover_point1 = rand() % crossover_point2;
+
+	for (int i = 0; i < crossover_point1; i++) {
+		c1_ptr[i] = (*edge)[i];
+		c2_ptr[i] = p2_ptr[i];
 	}
 
-	for (unsigned int row = row_point1 + 1; row < row_point2 - 1; row++) {
-		for (unsigned int col = 0; col < IMAGE_WIDTH; col++) {
-			c1[row][col] = p2[row][col];
-			c2[row][col] = (*this)[row][col];
-		}
+	for (int i = crossover_point1; i < crossover_point2; i++) {
+		c1_ptr[i] = p2_ptr[i];
+		c2_ptr[i] = (*edge)[i];
 	}
 
-	for (unsigned int row = row_point2 + 1; row < IMAGE_WIDTH; row++) {
-		for (unsigned int col = 0; col < IMAGE_WIDTH; col++) {
-			c1[row][col] = (*this)[row][col];
-			c2[row][col] = p2[row][col];
-		}
-	}
-
-	for (unsigned int col = 0; col < col_point1; col++) {
-		c1[row_point1][col] = (*this)[row_point1][col];
-		c2[row_point1][col] = p2[row_point1][col];
-	}
-
-	for (unsigned int col = col_point1; col < IMAGE_WIDTH; col++) {
-		c1[row_point2][col] = p2[row_point1][col];
-		c2[row_point2][col] = (*this)[row_point1][col];
-	}
-
-	for (unsigned int col = 0; col < col_point2; col++) {
-		c1[row_point2][col] = p2[row_point2][col];
-		c2[row_point2][col] = (*this)[row_point2][col];
+	for (int i = crossover_point2; i < N_PIXELS; i++) {
+		c1_ptr[i] = (*edge)[i];
+		c2_ptr[i] = p2_ptr[i];
 	}
 	
-	for (unsigned int col = col_point2; col < IMAGE_WIDTH; col++) {
-		c1[row_point1][col] = (*this)[row_point1][col];
-		c2[row_point1][col] = p2[row_point1][col];
-	}
+}
 
+std::ostream& operator<<(std::ostream& os, Genotype genotype) {
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			switch (genotype.edge[row][col]) {
+			case(LEFT):
+				os << "<\t";
+				break;
+			case(RIGHT):
+				os << ">\t";
+				break;
+			case(UP):
+				os << "^\t";
+				break;
+			case(DOWN):
+				os << "_\t";
+				break;
+			case(NONE):
+				os << ".\t";
+				break;
+			}
+		}
+		os << std::endl;
+	}
+	return os;
 }

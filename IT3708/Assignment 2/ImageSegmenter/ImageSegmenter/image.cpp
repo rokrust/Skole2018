@@ -1,10 +1,11 @@
 #include "image.hpp"
 
 #include <math.h>
-#include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
+//#include <opencv2/core.hpp>
+//#include <opencv2/highgui.hpp>
+#include <iostream>
 
-unsigned int Pixel::color_distance(Pixel p) {
+double Pixel::color_distance(Pixel p) {
 	Pixel p_diff = *this - p;
 	return sqrt(pow(p_diff.r, 2) + pow(p_diff.g, 2) + pow(p_diff.b, 2));
 }
@@ -34,6 +35,6 @@ Pixel Segment::calculate_centroid() {
 		(unsigned char)(sum_g / this->pixel.size()), //g
 		(unsigned char)(sum_b / this->pixel.size())  //b
 	};
-
+	
 	return centroid;
 }

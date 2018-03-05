@@ -38,11 +38,15 @@ private:
 	bool is_part_of_segment[IMAGE_HEIGHT][IMAGE_WIDTH];
 	bool visited[IMAGE_HEIGHT][IMAGE_WIDTH];
 	std::vector<Index>active_edge;
-	bool pixel_added = true;
+	bool pixel_added;
 
 public:
 	PhenotypeGenerator();
 	void advance_active_edge(Genotype genotype);
+
+	unsigned int next_index(unsigned int current_index, GRAPH_EDGE_DIR dir);
+	Index next_index(Index pos, GRAPH_EDGE_DIR dir);
+	Index* get_neighbors(int row, int col);
 };
 
 class Phenotype {

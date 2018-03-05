@@ -3,7 +3,7 @@
 #include <math.h>
 
 //Helper functions
-unsigned int next_index(unsigned int current_index, GRAPH_EDGE_DIR dir) {
+unsigned int PhenotypeGenerator::next_index(unsigned int current_index, GRAPH_EDGE_DIR dir) {
 	switch (dir) {
 	case(LEFT):
 		return current_index % IMAGE_WIDTH != 0 ? current_index + 1 : current_index;
@@ -19,7 +19,7 @@ unsigned int next_index(unsigned int current_index, GRAPH_EDGE_DIR dir) {
 
 }
 
-Index next_index(Index pos, GRAPH_EDGE_DIR dir) {
+Index PhenotypeGenerator::next_index(Index pos, GRAPH_EDGE_DIR dir) {
 
 	switch (dir) {
 	case(LEFT):
@@ -42,7 +42,7 @@ Index next_index(Index pos, GRAPH_EDGE_DIR dir) {
 	return { -1, -1 };
 }
 
-Index* get_neighbors(int row, int col) {
+Index* PhenotypeGenerator::get_neighbors(int row, int col) {
 	Index temp[4];
 
 	//temp[0] = next_index(row, col, LEFT);

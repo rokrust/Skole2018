@@ -15,9 +15,9 @@ int main() {
 	p1.crossover_two_point(p2, c1, c2);
 	std::cout << c1 << std::endl << std::endl;
 
-	PhenotypeGenerator generator(&c1);
-	std::vector<Segment> segment = generator.build_segments();
-	generator.calculate_edge_value();
+	Phenotype generator(c1);
+	double edge_value = generator.calculate_edge_value();
+	double overall_deviation = generator.calculate_overall_deviation();
 		
 	system("PAUSE");
 	return 0;

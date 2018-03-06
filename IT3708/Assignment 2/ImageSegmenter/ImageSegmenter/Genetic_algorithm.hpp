@@ -4,8 +4,7 @@
 //#include <opencv2/core.hpp>
 #include <iostream>
 
-enum GRAPH_EDGE_DIR { LEFT = 0, RIGHT, UP, DOWN, NONE };
-class Genotype; class Phenotype; class PhenotypeGenerator;
+class Genotype; class Phenotype;
 
 class Genotype {
 private:
@@ -13,7 +12,9 @@ private:
 
 public:
 	Genotype() { }
-//	Genotype(cv::Mat Image);
+	//Constructor helper functions
+	void calculate_MST(int row, int col);
+
 	//Genetic operators
 	void mutate(); //okay
 	void crossover_one_point(const Genotype& p2, Genotype& c1, Genotype& c2); //okay
@@ -31,9 +32,25 @@ public:
 		}
 	}
 	friend std::ostream& operator<<(std::ostream& os, Genotype genotype);
+	friend class MST;
 };
 
-class PhenotypeGenerator {
+class MST {
+private:
+	double edge_cost[IMAGE_HEIGHT][IMAGE_WIDTH];
+	bool visited[IMAGE_HEIGHT][IMAGE_WIDTH];
+	std::vector<Index> mst_set;
+public:
+	MST();
+	void genotype_generator(Genotype& genotype);
+
+	double closest_neighbor(int row, int col, Index& closest_neighbor, GRAPH_EDGE_DIR& dir);
+	GRAPH_EDGE_DIR find_best_direction(std::vector<Index[4]>& neighbor);
+	std::vector<Index[4]> get_outline();
+	void build_MST(int row_start, int col_start, GRAPH_EDGE_DIR** edge);
+};
+
+class Phenotype {
 private:
 	bool is_part_of_segment[IMAGE_HEIGHT][IMAGE_WIDTH];
 	int belongs_to_segment[IMAGE_HEIGHT][IMAGE_WIDTH];
@@ -42,32 +59,25 @@ private:
 
 	const Genotype* genotype;
 
-public:
-	PhenotypeGenerator();
-	PhenotypeGenerator(const Genotype* genotype);
-
-	std::vector<Segment> build_segments();
-	Segment build_segment_from_pixel(int row, int col);
-	void add_ingoing_to_active_edge(int row, int col);
-	void add_outgoing_to_active_edge(int row, int col, GRAPH_EDGE_DIR dir);
-	Index next_index(int row, int col, GRAPH_EDGE_DIR dir);
-	void get_neighbors(int row, int col, Index* neighbor);
-
-	void determine_segment_outlines(std::vector<Segment>& segment);
-
-	double calculate_overall_deviation();
-	double calculate_edge_value();
-};
-
-class Phenotype {
-private:
 	std::vector<Segment> segment;
 
 public:
+	//Constructors
 	Phenotype();
-	Phenotype(const Genotype* genotype);
+	Phenotype(const Genotype& genotype);
 
-	// Minimization objectives
+	//Constructor helper functions
+	void build_segments();
+	void build_segment_from_pixel(int row, int col);
+	void add_ingoing_to_active_edge(int row, int col);
+	void add_outgoing_to_active_edge(int row, int col, GRAPH_EDGE_DIR dir);
+	
+	//Helper functions
+	//Index next_index(int row, int col, GRAPH_EDGE_DIR dir);
+	//void get_neighbors(int row, int col, Index* neighbor);
+
+	//void determine_segment_outlines(std::vector<Segment>& segment);
+
 	double calculate_overall_deviation();
 	double calculate_edge_value();
 };

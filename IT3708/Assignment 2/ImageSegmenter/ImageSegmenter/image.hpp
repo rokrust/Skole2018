@@ -8,6 +8,8 @@
 
 struct Pixel; struct Index; class Image; class Segment;
 
+enum GRAPH_EDGE_DIR { LEFT = 0, RIGHT, UP, DOWN, NONE };
+
 //okay
 struct Pixel {
 	unsigned char r, g, b;
@@ -39,11 +41,14 @@ public:
 
 	void read(char* image_dir);
 
+	Index next_index(int row, int col, GRAPH_EDGE_DIR dir) const;
+	void get_neighbors(int row, int col, Index* neighbor) const;
+
 	Pixel* operator[](const unsigned int & index) { return image[index]; }
 	const Pixel* operator[](const unsigned int & index) const { return image[index]; }
 
 };
-static const Image image(5, 5);
+static const Image image(IMAGE_HEIGHT, IMAGE_WIDTH);
 
 //okay
 class Segment {
@@ -58,8 +63,8 @@ public:
 	//std::vector<Pixel> get_pixels() const { return pixel; }
 	
 	//Vector functions
-	//std::vector<Pixel>::iterator begin() { return pixel.begin(); }	//okay
-	//std::vector<Pixel>::iterator end() { return pixel.end(); }	//okay
+	std::vector<Index>::iterator begin() { return pixel.begin(); }	//okay
+	std::vector<Index>::iterator end() { return pixel.end(); }	//okay
 	//void push_back(Pixel p) { this->pixel.push_back(p); }
 	void add_pixel(int row, int col) { this->pixel.push_back({ row, col }); }
 	void add_pixel_to_outline(int row, int col) { this->outline.push_back({ row, col }); }

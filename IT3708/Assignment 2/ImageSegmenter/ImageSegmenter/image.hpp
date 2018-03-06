@@ -43,6 +43,7 @@ public:
 
 	Index next_index(int row, int col, GRAPH_EDGE_DIR dir) const;
 	void get_neighbors(int row, int col, Index* neighbor) const;
+	void get_neighbors(int row, int col, std::array<Index, 4> neighbor) const;
 
 	Pixel* operator[](const unsigned int & index) { return image[index]; }
 	const Pixel* operator[](const unsigned int & index) const { return image[index]; }

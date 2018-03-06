@@ -2,6 +2,7 @@
 #include <iterator>
 #include <math.h>
 #include <limits>
+#include <array>
 
 /********************************** Phenotype **********************************/
 /*Index Phenotype::next_index(int row, int col, GRAPH_EDGE_DIR dir) {
@@ -39,7 +40,9 @@ void Phenotype::get_neighbors(int row, int col, Index* neighbor) {
 }*/
 
 void Phenotype::add_ingoing_to_active_edge(int row, int col) {
-	Index neighbor[4]; 
+	Index dummy = { -1, -1 };
+	std::array<Index, 4> neighbor = { dummy, dummy, dummy, dummy };
+
 	image.get_neighbors(row, col, neighbor);
 
 	for (int pixel = 0; pixel < 4; pixel++) {
@@ -169,8 +172,9 @@ double Phenotype::calculate_edge_value() {
 
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			Index dummy = { -1, -1 };
+			std::array<Index, 4> neighbor = {dummy, dummy, dummy, dummy};
 
-			Index neighbor[4];
 			image.get_neighbors(row, col, neighbor);
 			Index current_pixel = { row, col };
 			int current_pixel_id = belongs_to_segment[current_pixel.row][current_pixel.col];
@@ -195,87 +199,116 @@ double Phenotype::calculate_edge_value() {
 }
 
 /*****************************************************************************/
-//MST
-GRAPH_EDGE_DIR MST::find_best_direction(std::vector<Index[4]>& neighbor) {
-	double INF = std::numeric_limits<double>::infinity();
-	double closest_neighbor_dist = INF;
-	Index closest_neighbor;
-	GRAPH_EDGE_DIR best_dir = NONE;
-
-	for (int i = 0; i < neighbor.size(); i++) {
-		for (int dir = 0; dir < 4; dir++) {
-
-			Index current_neighbor = neighbor[i][dir];
-			Index current_index = mst_set[i];
-
-			//Already in graph or neighbor is out of bounds
-			if (current_neighbor.is_none() || visited[current_index.row][current_index.col]) {
-				continue;
-			}
-
-			Pixel current_neighbor_pixel = image[current_neighbor.row][current_neighbor.col];
-			Pixel current_pixel = image[current_index.row][current_index.col];
-
-			double current_dist = current_pixel.color_distance(current_neighbor_pixel);
-
-			if (current_dist < closest_neighbor_dist) {
-				current_dist = closest_neighbor_dist;
-				closest_neighbor = current_neighbor;
-				best_dir = (GRAPH_EDGE_DIR)dir;
-			}
-		}
-	}
-
-	visited[closest_neighbor.row][closest_neighbor.col] = true;
-	mst_set.push_back(closest_neighbor);
-
-	return best_dir;
-}
-
-void MST::build_MST(int row_start, int col_start, GRAPH_EDGE_DIR** edge) {
-	edge_cost[row_start][col_start] = 0;
-	const int INF = std::numeric_limits<double>::infinity();
-
-	Index current_index = { row_start, col_start };
-	mst_set.reserve.push_back(current_index);
-
-	//While not all visited
-	while (1) {
-		GRAPH_EDGE_DIR dir = find_best_direction(get_outline());
-		if (dir == NONE) {
-			break;
-		}
-
-		Index new_pixel = mst_set[mst_set.size() - 1];
-		edge[new_pixel.row][new_pixel.col] = dir;
-	}
 
 
-}
-
-std::vector<Index[4]> MST::get_outline() {
-	std::vector<Index[4]> neighbor(1);
+/************************************ MST ************************************/
+std::vector<std::array<Index, 4>> MST::find_outline() {
+	std::vector<std::array<Index, 4>> neighbor(mst_set.size());
 
 	for (int i = 0; i < mst_set.size(); i++) {
 		Index current_index = mst_set[i];
+
 		image.get_neighbors(current_index.row, current_index.col, neighbor[i]);
 	}
 
 	return neighbor;
 }
 
+void MST::update_costs(std::vector<std::array<Index, 4>> &neighbor) {
+	for (int current_index = 0; current_index < mst_set.size(); current_index++) {
+		for (int current_dir = 0; current_dir < 4; current_dir++) {
+			Index current_neighbor = neighbor[current_index][current_dir];
+			Index current_pixel = mst_set[current_index];
 
+			if (current_neighbor.is_none() || visited[current_neighbor.row][current_neighbor.col]) {
+				continue;
+			}
+
+			Pixel current_neighbor_pixel_value = image[current_neighbor.row][current_neighbor.col];
+			Pixel current_pixel_value = image[current_pixel.row][current_pixel.col];
+			double current_best_cost = edge_cost[current_neighbor.row][current_neighbor.col];
+			double current_cost = current_pixel_value.color_distance(current_neighbor_pixel_value);
+			
+			if (current_cost < current_best_cost) {
+				edge_cost[current_neighbor.row][current_neighbor.col] = current_cost;
+				best_dir[current_pixel.row][current_pixel.col] = (GRAPH_EDGE_DIR)current_dir;
+			}
+		}
+	}
+}
+
+Index MST::determine_best_neighbor(std::vector<std::array<Index, 4>> &neighbor) {
+	double best_cost = std::numeric_limits<double>::infinity();
+	Index best_neighbor = { -1, -1 };
+
+	for (int current_pixel = 0; current_pixel < neighbor.size(); current_pixel++) {
+		for (int dir = 0; dir < 4; dir++) {
+	
+			Index current_neighbor = neighbor[current_pixel][dir];
+			if (current_neighbor.is_none() || visited[current_neighbor.row][current_neighbor.col]) {
+				continue;
+			}
+
+			double current_cost = edge_cost[current_neighbor.row][current_neighbor.col];
+
+			if (current_cost < best_cost) {
+				best_cost = current_cost;
+				best_neighbor = current_neighbor;
+			}
+		}
+	}
+
+	return best_neighbor;
+}
+
+void MST::build_MST(int row_start, int col_start) {
+	mst_set.push_back({ row_start, col_start });
+	//std::vector<std::array<Index, 4>> neighbor(mst_set.size());
+
+	while (true) {
+		//neighbor.reserve(mst_set.size());
+		std::vector<std::array<Index, 4>> neighbor = find_outline();
+
+		update_costs(neighbor);
+
+		Index best_neighbor = determine_best_neighbor(neighbor);
+		if (best_neighbor.is_none()) {
+			break;
+		}
+
+		mst_set.push_back(best_neighbor);
+	}
+
+}
+
+void MST::genotype_generator(Genotype &genotype) {
+	int row_start = rand() % IMAGE_HEIGHT;
+	int col_start = rand() % IMAGE_WIDTH;
+
+	build_MST(row_start, col_start);
+
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			genotype.edge[row][col] = best_dir[row][col];
+		}
+	}
+}
 
 MST::MST() {
-	const int INF = std::numeric_limits<double>::infinity();
+	const double INF = std::numeric_limits<double>::infinity();
 
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
 			edge_cost[row][col] = INF;
+			best_dir[row][col] = NONE;
 			visited[row][col] = false;
 		}
 	}
 }
+
+/*****************************************************************************/
+
+
 
 /********************************** Genotype **********************************/
 

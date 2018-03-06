@@ -38,16 +38,17 @@ public:
 class MST {
 private:
 	double edge_cost[IMAGE_HEIGHT][IMAGE_WIDTH];
+	GRAPH_EDGE_DIR best_dir[IMAGE_HEIGHT][IMAGE_WIDTH];
 	bool visited[IMAGE_HEIGHT][IMAGE_WIDTH];
 	std::vector<Index> mst_set;
 public:
 	MST();
 	void genotype_generator(Genotype& genotype);
 
-	double closest_neighbor(int row, int col, Index& closest_neighbor, GRAPH_EDGE_DIR& dir);
-	GRAPH_EDGE_DIR find_best_direction(std::vector<Index[4]>& neighbor);
-	std::vector<Index[4]> get_outline();
-	void build_MST(int row_start, int col_start, GRAPH_EDGE_DIR** edge);
+	void update_costs(std::vector<std::array<Index, 4>>& neighbor);
+	Index determine_best_neighbor(std::vector <std::array<Index, 4>>& neighbor);
+	std::vector<std::array<Index, 4>> find_outline();
+	void build_MST(int row_start, int col_start);
 };
 
 class Phenotype {

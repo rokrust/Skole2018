@@ -1,5 +1,6 @@
 #include "image.hpp"
 
+#include <array>
 #include <math.h>
 //#include <opencv2/core.hpp>
 //#include <opencv2/highgui.hpp>
@@ -62,7 +63,7 @@ Index Image::next_index(int row, int col, GRAPH_EDGE_DIR dir) const {
 	return{ -1, -1 };
 }
 
-void Image::get_neighbors(int row, int col, Index* neighbor) const {
+/*void Image::get_neighbors(int row, int col, Index* neighbor) const {
 	//neighbor[0] = next_index(row, col, LEFT);
 	//neighbor[1] = next_index(row, col, RIGHT);
 	//neighbor[2] = next_index(row, col, UP);
@@ -72,4 +73,11 @@ void Image::get_neighbors(int row, int col, Index* neighbor) const {
 	row != 0 ? neighbor[2] = { row - 1, col } : neighbor[2] = { -1, -1 };
 	row != IMAGE_HEIGHT - 1 ? neighbor[3] = { row + 1, col } : neighbor[3] = { -1, -1 };
 
+}*/
+
+void Image::get_neighbors(int row, int col, std::array<Index, 4> neighbor) const {
+	col != 0 ? neighbor[0] = { row, col - 1 } : neighbor[0] = { -1, -1 };
+	col != IMAGE_WIDTH - 1 ? neighbor[1] = { row, col + 1 } : neighbor[1] = { -1, -1 };
+	row != 0 ? neighbor[2] = { row - 1, col } : neighbor[2] = { -1, -1 };
+	row != IMAGE_HEIGHT - 1 ? neighbor[3] = { row + 1, col } : neighbor[3] = { -1, -1 };
 }

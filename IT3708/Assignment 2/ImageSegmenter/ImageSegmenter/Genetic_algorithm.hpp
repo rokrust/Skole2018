@@ -36,17 +36,27 @@ public:
 class PhenotypeGenerator {
 private:
 	bool is_part_of_segment[IMAGE_HEIGHT][IMAGE_WIDTH];
-	bool visited[IMAGE_HEIGHT][IMAGE_WIDTH];
-	std::vector<Index>active_edge;
-	bool pixel_added;
+	int belongs_to_segment[IMAGE_HEIGHT][IMAGE_WIDTH];
+	std::vector<Index> active_edge; //growing edge
+	std::vector<Index> new_active_edge;
+
+	const Genotype* genotype;
 
 public:
 	PhenotypeGenerator();
-	void advance_active_edge(Genotype genotype);
+	PhenotypeGenerator(const Genotype* genotype);
 
-	unsigned int next_index(unsigned int current_index, GRAPH_EDGE_DIR dir);
-	Index next_index(Index pos, GRAPH_EDGE_DIR dir);
-	Index* get_neighbors(int row, int col);
+	std::vector<Segment> build_segments();
+	Segment build_segment_from_pixel(int row, int col);
+	void add_ingoing_to_active_edge(int row, int col);
+	void add_outgoing_to_active_edge(int row, int col, GRAPH_EDGE_DIR dir);
+	Index next_index(int row, int col, GRAPH_EDGE_DIR dir);
+	void get_neighbors(int row, int col, Index* neighbor);
+
+	void determine_segment_outlines(std::vector<Segment>& segment);
+
+	double calculate_overall_deviation();
+	double calculate_edge_value();
 };
 
 class Phenotype {
@@ -55,8 +65,7 @@ private:
 
 public:
 	Phenotype();
-	Phenotype(Genotype genotype);
-	Phenotype(const unsigned int & height, const unsigned int & width);
+	Phenotype(const Genotype* genotype);
 
 	// Minimization objectives
 	double calculate_overall_deviation();

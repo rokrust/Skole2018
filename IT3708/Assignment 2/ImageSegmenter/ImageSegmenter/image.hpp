@@ -6,6 +6,8 @@
 #define IMAGE_WIDTH 5//321
 #define N_PIXELS IMAGE_HEIGHT*IMAGE_WIDTH
 
+struct Pixel; struct Index; class Image; class Segment;
+
 //okay
 struct Pixel {
 	unsigned char r, g, b;
@@ -22,50 +24,51 @@ struct Index {
 	bool is_none() { return row == -1; }
 };
 
-//okay
-class Segment {
-private:
-	std::vector<Pixel> pixel;
-
-public:
-	Segment();
-	~Segment() {}
-
-
-	size_t get_length() const { return pixel.size(); }
-	std::vector<Pixel> get_pixels() const { return pixel; }
-	
-	//Iterators
-	std::vector<Pixel>::iterator begin() { return pixel.begin(); }	//okay
-	std::vector<Pixel>::iterator end() { return pixel.end(); }	//okay
-
-	//Math
-	Pixel calculate_centroid(); //okay
-
-	void test() {
-		pixel.push_back({ 10, 10, 10 });
-		pixel.push_back({ 40, 40, 40 });
-		pixel.push_back({ 5, 5, 5 });
-		pixel.push_back({ 45, 45, 45 });
-	}
-
-	// Operators
-	Pixel& operator[](const unsigned int & index) { return pixel[index]; }	//okay
-	const Pixel& operator[](const unsigned int & index) const { return pixel[index]; }	//okay
-};
-
 class Image {
 private:
-	Pixel* image;
+	Pixel image[IMAGE_HEIGHT][IMAGE_WIDTH];
 	unsigned int n_pixels;
 	unsigned int height;
 	unsigned int width;
 
 public:
-	Image(char* image_dir);
-	~Image() { delete image; }
 
-	Pixel& operator[](const unsigned int & index) { return image[index]; }
-	const Pixel& operator[](const unsigned int & index) const { return image[index]; }
+	Image() {}
+	Image(char* image_dir);
+	Image(const unsigned int height, const unsigned int width) : height(height), width(width), n_pixels(height*width) {}
+
+	void read(char* image_dir);
+
+	Pixel* operator[](const unsigned int & index) { return image[index]; }
+	const Pixel* operator[](const unsigned int & index) const { return image[index]; }
+
+};
+static const Image image(5, 5);
+
+//okay
+class Segment {
+private:
+	std::vector<Index> pixel;
+	std::vector<Index> outline;
+
+public:
+	Segment();
+
+	size_t get_length() const { return pixel.size(); }
+	//std::vector<Pixel> get_pixels() const { return pixel; }
+	
+	//Vector functions
+	//std::vector<Pixel>::iterator begin() { return pixel.begin(); }	//okay
+	//std::vector<Pixel>::iterator end() { return pixel.end(); }	//okay
+	//void push_back(Pixel p) { this->pixel.push_back(p); }
+	void add_pixel(int row, int col) { this->pixel.push_back({ row, col }); }
+	void add_pixel_to_outline(int row, int col) { this->outline.push_back({ row, col }); }
+
+	//Math
+	Pixel calculate_centroid(); //okay
+
+	// Operators
+	Index& operator[](unsigned int & index) { return pixel[index]; }	//okay
+	const Index& operator[](const unsigned int & index) const { return pixel[index]; }	//okay
 
 };

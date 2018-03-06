@@ -25,9 +25,10 @@ Segment::Segment() { }
 Pixel Segment::calculate_centroid() {
 	unsigned int sum_r = 0, sum_g = 0, sum_b = 0;
 	for (int i = 0; i < this->pixel.size(); i++) {
-		sum_r += this->pixel[i].r;
-		sum_g += this->pixel[i].g;
-		sum_b += this->pixel[i].b;
+		Pixel pixel_value = image[pixel[i].row][pixel[i].col];
+		sum_r += pixel_value.r;
+		sum_g += pixel_value.g;
+		sum_b += pixel_value.b;
 	}
 
 	Pixel centroid = { 

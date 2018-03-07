@@ -3,42 +3,20 @@
 #include <math.h>
 #include <limits>
 #include <array>
+/********************************** Population **********************************/
+Population::Population(int population_size, int archive_size): archive_size(archive_size) {
+	population.reserve(population_size);
 
-/********************************** Phenotype **********************************/
-/*Index Phenotype::next_index(int row, int col, GRAPH_EDGE_DIR dir) {
-	switch (dir) {
-	case(LEFT):
-		if (col != 0) { return { row, col - 1 }; }
-		break;
-
-	case(RIGHT):
-		if (col != IMAGE_WIDTH - 1) { return { row, col + 1 }; }
-		break;
-
-	case(UP):
-		if (row != 0) { return { row - 1, col }; }
-		break;
-
-	case(DOWN):
-		if (row != IMAGE_HEIGHT - 1) { return { row + 1, col }; }
-		break;
+	for (int i = 0; i < population_size; i++) {
+		Genotype genotype;
+		MST mst;
+		mst.genotype_generator(genotype);
+		population.push_back(genotype);
 	}
-
-	return { -1, -1 };
 }
+/********************************************************************************/
 
-void Phenotype::get_neighbors(int row, int col, Index* neighbor) {
-	//neighbor[0] = next_index(row, col, LEFT);
-	//neighbor[1] = next_index(row, col, RIGHT);
-	//neighbor[2] = next_index(row, col, UP);
-	//neighbor[3] = next_index(row, col, DOWN);
-	col != 0 ? neighbor[0] = { row, col - 1 } : neighbor[0] = { -1, -1 };
-	col != IMAGE_WIDTH - 1 ? neighbor[1] = { row, col + 1 } : neighbor[1] = { -1, -1 };
-	row != 0 ? neighbor[2] = { row - 1, col } : neighbor[2] = { -1, -1 };
-	row != IMAGE_HEIGHT - 1 ? neighbor[3] = { row + 1, col } : neighbor[3] = { -1, -1 };
-
-}*/
-
+/*********************************** Phenotype **********************************/
 void Phenotype::add_ingoing_to_active_edge(int row, int col) {
 	Index dummy = { -1, -1 };
 	std::array<Index, 4> neighbor = { dummy, dummy, dummy, dummy };
@@ -71,7 +49,11 @@ void Phenotype::add_ingoing_to_active_edge(int row, int col) {
 void Phenotype::add_outgoing_to_active_edge(int row, int col, GRAPH_EDGE_DIR dir) {
 	if (dir != NONE) {
 		Index next_pixel = image.next_index(row, col, dir);
-		if (!(is_part_of_segment[next_pixel.row][next_pixel.col] || next_pixel.is_none())) {
+		if (next_pixel.is_none()) {
+			return;
+		}
+
+		if (!is_part_of_segment[next_pixel.row][next_pixel.col]) {
 			is_part_of_segment[next_pixel.row][next_pixel.col] = true;
 			new_active_edge.push_back(next_pixel);
 		}
@@ -128,7 +110,12 @@ void Phenotype::build_segments() {
 }
 
 Phenotype::Phenotype() {
+	is_part_of_segment = new bool*[IMAGE_HEIGHT];
+	belongs_to_segment = new int*[IMAGE_HEIGHT];
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		is_part_of_segment[row] = new bool[IMAGE_WIDTH];
+		belongs_to_segment[row] = new int[IMAGE_WIDTH];
+
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
 			is_part_of_segment[row][col] = false;
 			belongs_to_segment[row][col] = -1;
@@ -136,6 +123,13 @@ Phenotype::Phenotype() {
 	}
 }
 
+Phenotype::~Phenotype() {
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		delete[] is_part_of_segment[row];
+		delete[] belongs_to_segment[row];
+	}
+
+}
 Phenotype::Phenotype(const Genotype& genotype): Phenotype() {
 	this->genotype = &genotype;
 	build_segments();
@@ -198,10 +192,10 @@ double Phenotype::calculate_edge_value() {
 	return edge_value;
 }
 
-/*****************************************************************************/
+/********************************************************************************/
 
 
-/************************************ MST ************************************/
+/************************************* MST **************************************/
 std::vector<std::array<Index, 4>> MST::find_outline() {
 	std::vector<std::array<Index, 4>> neighbor(mst_set.size());
 
@@ -263,7 +257,7 @@ Index MST::determine_best_neighbor(std::vector<std::array<Index, 4>> &neighbor) 
 
 void MST::build_MST(int row_start, int col_start) {
 	mst_set.push_back({ row_start, col_start });
-	//std::vector<std::array<Index, 4>> neighbor(mst_set.size());
+	unsigned int iter = 0;
 
 	while (true) {
 		//neighbor.reserve(mst_set.size());
@@ -277,8 +271,8 @@ void MST::build_MST(int row_start, int col_start) {
 		}
 
 		mst_set.push_back(best_neighbor);
+		std::cout << iter++ << std::endl;
 	}
-
 }
 
 void MST::genotype_generator(Genotype &genotype) {
@@ -296,6 +290,15 @@ void MST::genotype_generator(Genotype &genotype) {
 
 MST::MST() {
 	const double INF = std::numeric_limits<double>::infinity();
+	edge_cost = new double*[IMAGE_HEIGHT];
+	best_dir = new GRAPH_EDGE_DIR*[IMAGE_HEIGHT];
+	visited = new bool*[IMAGE_HEIGHT];
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		edge_cost[row] = new double[IMAGE_WIDTH];
+		best_dir[row] = new GRAPH_EDGE_DIR[IMAGE_WIDTH];
+		visited[row] = new bool[IMAGE_WIDTH];
+	}
+
 
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
@@ -306,11 +309,39 @@ MST::MST() {
 	}
 }
 
-/*****************************************************************************/
+MST::~MST() {
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		delete[] edge_cost[row];
+		delete[] best_dir[row];
+		delete[] visited[row];
+	}
+}
+/********************************************************************************/
 
 
 
-/********************************** Genotype **********************************/
+/*********************************** Genotype ***********************************/
+Genotype::Genotype() {
+	edge = new GRAPH_EDGE_DIR*[IMAGE_HEIGHT];
+	
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		edge[row] = new GRAPH_EDGE_DIR[IMAGE_WIDTH];
+	}
+}
+
+Genotype::~Genotype() {
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		delete [] edge[row];
+	}
+}
+
+void Genotype::random_init() {
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			edge[row][col] = (GRAPH_EDGE_DIR)(rand() % 5);
+		}
+	}
+}
 
 //Member functions
 void Genotype::mutate() {
@@ -390,7 +421,7 @@ std::ostream& operator<<(std::ostream& os, Genotype genotype) {
 	}
 	return os;
 }
-/******************************************************************************/
+/********************************************************************************/
 
 
 /*

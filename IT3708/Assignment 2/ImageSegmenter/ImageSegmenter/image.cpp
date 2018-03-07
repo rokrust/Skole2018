@@ -2,8 +2,8 @@
 
 #include <array>
 #include <math.h>
-//#include <opencv2/core.hpp>
-//#include <opencv2/highgui.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
 #include <iostream>
 
 double Pixel::color_distance(Pixel p) {
@@ -21,8 +21,6 @@ Pixel Pixel::operator-(Pixel p) {
 	return rhs;
 }
 
-Segment::Segment() { }
-
 Pixel Segment::calculate_centroid() {
 	unsigned int sum_r = 0, sum_g = 0, sum_b = 0;
 	for (int i = 0; i < this->pixel.size(); i++) {
@@ -39,6 +37,12 @@ Pixel Segment::calculate_centroid() {
 	};
 	
 	return centroid;
+}
+
+Image::Image() { }
+
+Image::Image(char* image_dir): Image() {
+	this->read(image_dir);
 }
 
 Index Image::next_index(int row, int col, GRAPH_EDGE_DIR dir) const {
@@ -80,4 +84,20 @@ void Image::get_neighbors(int row, int col, std::array<Index, 4> neighbor) const
 	col != IMAGE_WIDTH - 1 ? neighbor[1] = { row, col + 1 } : neighbor[1] = { -1, -1 };
 	row != 0 ? neighbor[2] = { row - 1, col } : neighbor[2] = { -1, -1 };
 	row != IMAGE_HEIGHT - 1 ? neighbor[3] = { row + 1, col } : neighbor[3] = { -1, -1 };
+}
+
+void Image::read(char* image_dir){
+	cv::Mat mat;
+	mat = cv::imread(image_dir, CV_LOAD_IMAGE_COLOR);
+	if (IMAGE_HEIGHT != mat.rows || IMAGE_WIDTH != mat.cols) {
+		std::cout << "IMAGE_HEIGHT and/or IMAGE_WIDTH set to wrong value\n";
+	}
+
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			cv::Vec3b rgb = mat.at<cv::Vec3b>(row, col);
+			pixels[row][col] = { rgb[0], rgb[1], rgb[2] };;
+
+		}
+	}
 }

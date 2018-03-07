@@ -7,18 +7,19 @@ void print_index(Index index) {
 }
 
 int main() {
-	Genotype p1, p2;
-	Genotype c1, c2;
-	p1.test();
-	p2.test();
+	Genotype genotype[50];
+	int j = 0;
+	system("PAUSE");
+	for (int i = 0; i < 50; i++) {
+		genotype[i].random_init();
+		Phenotype dummy(genotype[i]);
+	}
+	system("PAUSE");
+	//MST mst;
+	//mst.genotype_generator(genotype);
+	
+	//std::cout << genotype;
 
-	p1.crossover_two_point(p2, c1, c2);
-	std::cout << c1 << std::endl << std::endl;
-
-	Phenotype generator(c1);
-	double edge_value = generator.calculate_edge_value();
-	double overall_deviation = generator.calculate_overall_deviation();
-		
 	system("PAUSE");
 	return 0;
 }

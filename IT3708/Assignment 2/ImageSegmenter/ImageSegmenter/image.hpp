@@ -2,9 +2,10 @@
 #include <vector>
 #include <iterator>
 
-#define IMAGE_HEIGHT 5//481
-#define IMAGE_WIDTH 5//321
+#define IMAGE_HEIGHT 321
+#define IMAGE_WIDTH 481
 #define N_PIXELS IMAGE_HEIGHT*IMAGE_WIDTH
+#define IMAGE_DIR "Test image.jpg"
 
 struct Pixel; struct Index; class Image; class Segment;
 
@@ -17,6 +18,7 @@ struct Pixel {
 
 	//Operators
 	Pixel operator-(Pixel p); //okay
+	//Pixel operator=(Pixel p) { this->r = p.r; this->g = p.g; this->b = p.b; return *this; }
 };
 
 //okay
@@ -28,16 +30,12 @@ struct Index {
 
 class Image {
 private:
-	Pixel image[IMAGE_HEIGHT][IMAGE_WIDTH];
-	unsigned int n_pixels;
-	unsigned int height;
-	unsigned int width;
+	Pixel pixels[IMAGE_HEIGHT][IMAGE_WIDTH];
 
 public:
 
-	Image() {}
+	Image();
 	Image(char* image_dir);
-	Image(const unsigned int height, const unsigned int width) : height(height), width(width), n_pixels(height*width) {}
 
 	void read(char* image_dir);
 
@@ -45,30 +43,26 @@ public:
 	void get_neighbors(int row, int col, Index* neighbor) const;
 	void get_neighbors(int row, int col, std::array<Index, 4> neighbor) const;
 
-	Pixel* operator[](const unsigned int & index) { return image[index]; }
-	const Pixel* operator[](const unsigned int & index) const { return image[index]; }
+	Pixel* operator[](const unsigned int & index) { return pixels[index]; }
+	const Pixel* operator[](const unsigned int & index) const { return pixels[index]; }
 
 };
-static const Image image(IMAGE_HEIGHT, IMAGE_WIDTH);
+static const Image image(IMAGE_DIR);
 
 //okay
 class Segment {
 private:
 	std::vector<Index> pixel;
-	std::vector<Index> outline;
 
 public:
-	Segment();
+	Segment() {}
 
 	size_t get_length() const { return pixel.size(); }
-	//std::vector<Pixel> get_pixels() const { return pixel; }
 	
 	//Vector functions
 	std::vector<Index>::iterator begin() { return pixel.begin(); }	//okay
 	std::vector<Index>::iterator end() { return pixel.end(); }	//okay
-	//void push_back(Pixel p) { this->pixel.push_back(p); }
 	void add_pixel(int row, int col) { this->pixel.push_back({ row, col }); }
-	void add_pixel_to_outline(int row, int col) { this->outline.push_back({ row, col }); }
 
 	//Math
 	Pixel calculate_centroid(); //okay

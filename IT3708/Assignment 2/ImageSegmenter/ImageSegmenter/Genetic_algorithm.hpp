@@ -6,14 +6,29 @@
 
 class Genotype; class Phenotype;
 
-class Genotype {
+class Population {
 private:
-	GRAPH_EDGE_DIR edge[IMAGE_HEIGHT][IMAGE_WIDTH];
+	int archive_size;
+	std::vector<Genotype> population;
 
 public:
-	Genotype() { }
-	//Constructor helper functions
-	void calculate_MST(int row, int col);
+	Population() {}
+	Population(int population_size, int archive_size);
+
+	void next_generation();
+	void tournament_selection();
+	void find_pareto_fronts();
+};
+
+class Genotype {
+private:
+	GRAPH_EDGE_DIR** edge;
+
+public:
+	Genotype();
+	~Genotype();
+
+	void random_init();
 
 	//Genetic operators
 	void mutate(); //okay
@@ -37,12 +52,15 @@ public:
 
 class MST {
 private:
-	double edge_cost[IMAGE_HEIGHT][IMAGE_WIDTH];
-	GRAPH_EDGE_DIR best_dir[IMAGE_HEIGHT][IMAGE_WIDTH];
-	bool visited[IMAGE_HEIGHT][IMAGE_WIDTH];
+	double** edge_cost;
+	GRAPH_EDGE_DIR** best_dir;
+	bool** visited;
 	std::vector<Index> mst_set;
+
 public:
 	MST();
+	~MST();
+
 	void genotype_generator(Genotype& genotype);
 
 	void update_costs(std::vector<std::array<Index, 4>>& neighbor);
@@ -53,8 +71,8 @@ public:
 
 class Phenotype {
 private:
-	bool is_part_of_segment[IMAGE_HEIGHT][IMAGE_WIDTH];
-	int belongs_to_segment[IMAGE_HEIGHT][IMAGE_WIDTH];
+	bool** is_part_of_segment;
+	int** belongs_to_segment;
 	std::vector<Index> active_edge; //growing edge
 	std::vector<Index> new_active_edge;
 
@@ -66,6 +84,7 @@ public:
 	//Constructors
 	Phenotype();
 	Phenotype(const Genotype& genotype);
+	~Phenotype();
 
 	//Constructor helper functions
 	void build_segments();
@@ -73,12 +92,6 @@ public:
 	void add_ingoing_to_active_edge(int row, int col);
 	void add_outgoing_to_active_edge(int row, int col, GRAPH_EDGE_DIR dir);
 	
-	//Helper functions
-	//Index next_index(int row, int col, GRAPH_EDGE_DIR dir);
-	//void get_neighbors(int row, int col, Index* neighbor);
-
-	//void determine_segment_outlines(std::vector<Segment>& segment);
-
 	double calculate_overall_deviation();
 	double calculate_edge_value();
 };

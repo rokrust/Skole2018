@@ -3,6 +3,7 @@
 #include <math.h>
 #include <limits>
 #include <array>
+#include <chrono>
 /********************************** Population **********************************/
 Population::Population(int population_size, int archive_size): archive_size(archive_size) {
 	population.reserve(population_size);
@@ -53,6 +54,7 @@ void Phenotype::add_outgoing_to_active_edge(int row, int col, GRAPH_EDGE_DIR dir
 			return;
 		}
 
+		// Add to segment
 		if (!is_part_of_segment[next_pixel.row][next_pixel.col]) {
 			is_part_of_segment[next_pixel.row][next_pixel.col] = true;
 			new_active_edge.push_back(next_pixel);
@@ -69,18 +71,25 @@ void Phenotype::build_segment_from_pixel(int row, int col) {
 	static int segment_id = 0;
 	segment_id++;
 
+	using namespace std::chrono;
+	high_resolution_clock::time_point t1;
+	high_resolution_clock::time_point t2;
+
 	// As long as a pixel was added to the segment
+	t1 = high_resolution_clock::now();
 	while (active_edge.size() != 0) {
 		new_active_edge.clear();
+		
 		for (int i = active_edge.size() - 1; i >= 0; i--) {
 			Index current_pixel = active_edge[i];
 			
 			current_segment.add_pixel(current_pixel.row, current_pixel.col);
 			active_edge.pop_back();
 			belongs_to_segment[current_pixel.row][current_pixel.col] = segment_id;
+			
+			add_ingoing_to_active_edge(current_pixel.row, current_pixel.col);	//Kalles mange ganger på samme pixel?
 
 			//Add all neighbors pointing towards the segment
-			add_ingoing_to_active_edge(current_pixel.row, current_pixel.col);	//Kalles mange ganger på samme pixel?
 
 			//Add all neighbors being pointed to by the segment
 			GRAPH_EDGE_DIR dir = (*genotype)[current_pixel.row][current_pixel.col];
@@ -91,6 +100,9 @@ void Phenotype::build_segment_from_pixel(int row, int col) {
 		//All members of the old edge handled. Go on to new edge
 		active_edge = new_active_edge;
 	}
+	t2 = high_resolution_clock::now();
+	auto duration = duration_cast<microseconds>(t2 - t1).count();
+	std::cout << duration << std::endl;
 
 	segment.push_back(current_segment);
 }
@@ -130,6 +142,7 @@ Phenotype::~Phenotype() {
 	}
 
 }
+
 Phenotype::Phenotype(const Genotype& genotype): Phenotype() {
 	this->genotype = &genotype;
 	build_segments();

@@ -11,7 +11,22 @@ double Pixel::color_distance(Pixel p) {
 	return sqrt(pow(p_diff.r, 2) + pow(p_diff.g, 2) + pow(p_diff.b, 2));
 }
 
+double Pixel::color_distance(Pixel p) const {
+	Pixel p_diff = *this - p;
+	return sqrt(pow(p_diff.r, 2) + pow(p_diff.g, 2) + pow(p_diff.b, 2));
+}
+
 Pixel Pixel::operator-(Pixel p) {
+	Pixel rhs;
+
+	rhs.r = this->r > p.r ? this->r - p.r : p.r - this->r;
+	rhs.g = this->g > p.g ? this->g - p.g : p.g - this->g;
+	rhs.b = this->b > p.b ? this->b - p.b : p.b - this->b;
+
+	return rhs;
+}
+
+Pixel Pixel::operator-(Pixel p) const {
 	Pixel rhs;
 
 	rhs.r = this->r > p.r ? this->r - p.r : p.r - this->r;
@@ -39,10 +54,27 @@ Pixel Segment::calculate_centroid() {
 	return centroid;
 }
 
-Image::Image() { }
+Image::Image() {
+	pixels = new Pixel*[IMAGE_HEIGHT];
+	vertical_color_distance = new double[IMAGE_HEIGHT*(IMAGE_WIDTH-1)];
+	horizontal_color_distance = new double[(IMAGE_HEIGHT-1)*IMAGE_WIDTH];
+	
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		pixels[row] = new Pixel[IMAGE_WIDTH];
+	}
+}
 
 Image::Image(char* image_dir): Image() {
 	this->read(image_dir);
+}
+
+Image::~Image() {
+	delete vertical_color_distance;
+	delete horizontal_color_distance;
+
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		delete[] pixels[row];
+	}
 }
 
 Index Image::next_index(int row, int col, GRAPH_EDGE_DIR dir) const {
@@ -67,17 +99,41 @@ Index Image::next_index(int row, int col, GRAPH_EDGE_DIR dir) const {
 	return{ -1, -1 };
 }
 
-/*void Image::get_neighbors(int row, int col, Index* neighbor) const {
-	//neighbor[0] = next_index(row, col, LEFT);
-	//neighbor[1] = next_index(row, col, RIGHT);
-	//neighbor[2] = next_index(row, col, UP);
-	//neighbor[3] = next_index(row, col, DOWN);
-	col != 0 ? neighbor[0] = { row, col - 1 } : neighbor[0] = { -1, -1 };
-	col != IMAGE_WIDTH - 1 ? neighbor[1] = { row, col + 1 } : neighbor[1] = { -1, -1 };
-	row != 0 ? neighbor[2] = { row - 1, col } : neighbor[2] = { -1, -1 };
-	row != IMAGE_HEIGHT - 1 ? neighbor[3] = { row + 1, col } : neighbor[3] = { -1, -1 };
+void Image::calculate_color_distances() const {
 
-}*/
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		for (int col = 0; col < IMAGE_WIDTH - 1; col++) {
+			vertical_color_distance[row*(IMAGE_WIDTH - 1) + col] = image[row][col].color_distance(image[row][col + 1]);
+		}
+	}
+
+	for (int row = 0; row < IMAGE_HEIGHT - 1; row++) {
+		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			horizontal_color_distance[row*IMAGE_WIDTH + col] = image[row][col].color_distance(image[row + 1][col]);
+		}
+	}
+}
+
+double Image::get_dist(const Index& p1, const Index& p2) {
+	Index p_diff = { p1.row - p2.row, p1.col - p2.col };
+	if (p_diff.col == 1) {
+		return horizontal_color_distance[p2.row * (IMAGE_WIDTH - 1) + p2.col];
+	}
+	
+	else if (p_diff.col == -1) {
+		return horizontal_color_distance[p1.row * (IMAGE_WIDTH - 1) + p1.col];
+		//return right;
+	}
+	
+	else if (p_diff.row == -1) {
+		//return up;
+	}
+
+	else if(p_diff.row == 1) {
+		//return down;
+	}
+}
+
 
 void Image::get_neighbors(int row, int col, std::array<Index, 4> neighbor) const {
 	col != 0 ? neighbor[0] = { row, col - 1 } : neighbor[0] = { -1, -1 };

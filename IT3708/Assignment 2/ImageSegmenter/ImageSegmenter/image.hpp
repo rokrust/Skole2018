@@ -15,10 +15,11 @@ enum GRAPH_EDGE_DIR { LEFT = 0, RIGHT, UP, DOWN, NONE };
 struct Pixel {
 	unsigned char r, g, b;
 	double color_distance(Pixel p); //okay
+	double Pixel::color_distance(Pixel p) const;
 
 	//Operators
 	Pixel operator-(Pixel p); //okay
-	//Pixel operator=(Pixel p) { this->r = p.r; this->g = p.g; this->b = p.b; return *this; }
+	Pixel Pixel::operator-(Pixel p) const;
 };
 
 //okay
@@ -30,17 +31,21 @@ struct Index {
 
 class Image {
 private:
-	Pixel pixels[IMAGE_HEIGHT][IMAGE_WIDTH];
+	Pixel** pixels;
+	double* vertical_color_distance;
+	double* horizontal_color_distance;
 
 public:
 
 	Image();
 	Image(char* image_dir);
-
+	~Image();
 	void read(char* image_dir);
 
+	void calculate_color_distances() const;
+	double get_dist(const Index& p1, const Index& p2);
+
 	Index next_index(int row, int col, GRAPH_EDGE_DIR dir) const;
-	void get_neighbors(int row, int col, Index* neighbor) const;
 	void get_neighbors(int row, int col, std::array<Index, 4> neighbor) const;
 
 	Pixel* operator[](const unsigned int & index) { return pixels[index]; }

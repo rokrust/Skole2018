@@ -5,6 +5,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <iostream>
+#include <limits>
 
 double Pixel::color_distance(Pixel p) {
 	Pixel p_diff = *this - p;
@@ -56,8 +57,8 @@ Pixel Segment::calculate_centroid() {
 
 Image::Image() {
 	pixels = new Pixel*[IMAGE_HEIGHT];
-	vertical_color_distance = new double[IMAGE_HEIGHT*(IMAGE_WIDTH-1)];
-	horizontal_color_distance = new double[(IMAGE_HEIGHT-1)*IMAGE_WIDTH];
+	horizontal_color_distance = new double[IMAGE_HEIGHT*(IMAGE_WIDTH-1)];
+	vertical_color_distance = new double[(IMAGE_HEIGHT-1)*IMAGE_WIDTH];
 	
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		pixels[row] = new Pixel[IMAGE_WIDTH];
@@ -103,37 +104,39 @@ void Image::calculate_color_distances() const {
 
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH - 1; col++) {
-			vertical_color_distance[row*(IMAGE_WIDTH - 1) + col] = image[row][col].color_distance(image[row][col + 1]);
+			horizontal_color_distance[row*(IMAGE_WIDTH - 1) + col] = image[row][col].color_distance(image[row][col + 1]);
 		}
 	}
 
 	for (int row = 0; row < IMAGE_HEIGHT - 1; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
-			horizontal_color_distance[row*IMAGE_WIDTH + col] = image[row][col].color_distance(image[row + 1][col]);
+			vertical_color_distance[row*IMAGE_WIDTH + col] = image[row][col].color_distance(image[row + 1][col]);
 		}
 	}
 }
 
-double Image::get_dist(const Index& p1, const Index& p2) {
+double Image::get_dist(const Index& p1, const Index& p2) const {
 	Index p_diff = { p1.row - p2.row, p1.col - p2.col };
+
 	if (p_diff.col == 1) {
 		return horizontal_color_distance[p2.row * (IMAGE_WIDTH - 1) + p2.col];
 	}
 	
 	else if (p_diff.col == -1) {
 		return horizontal_color_distance[p1.row * (IMAGE_WIDTH - 1) + p1.col];
-		//return right;
 	}
 	
 	else if (p_diff.row == -1) {
-		//return up;
+		return vertical_color_distance[p1.row * (IMAGE_WIDTH - 1) + p1.col];
 	}
 
 	else if(p_diff.row == 1) {
-		//return down;
+		return vertical_color_distance[p2.row * (IMAGE_WIDTH - 1) + p2.col];
 	}
-}
 
+	//Pixels are not neighbors
+	return std::numeric_limits<double>::infinity();
+}
 
 void Image::get_neighbors(int row, int col, std::array<Index, 4> neighbor) const {
 	col != 0 ? neighbor[0] = { row, col - 1 } : neighbor[0] = { -1, -1 };

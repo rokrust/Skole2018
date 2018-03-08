@@ -51,22 +51,26 @@ public:
 };
 
 class MST {
+	
 private:
 	double** edge_cost;
-	GRAPH_EDGE_DIR** best_dir;
-	bool** visited;
+	unsigned char** unused_neighbors;
+	GRAPH_EDGE_DIR** dir;
+	bool** in_tree;
+	
 	std::vector<Index> mst_set;
+	std::vector<Index> outline;
 
 public:
 	MST();
 	~MST();
 
+	void update_costs(Index current_node);
+	Index find_closest_node();
+	void add_node(Index closest_node);
+	void pop_surrounding_caged_nodes(Index node);
 	void genotype_generator(Genotype& genotype);
-
-	void update_costs(std::vector<std::array<Index, 4>>& neighbor);
-	Index determine_best_neighbor(std::vector <std::array<Index, 4>>& neighbor);
-	std::vector<std::array<Index, 4>> find_outline();
-	void build_MST(int row_start, int col_start);
+	void build_tree(Index start_node);
 };
 
 class Phenotype {

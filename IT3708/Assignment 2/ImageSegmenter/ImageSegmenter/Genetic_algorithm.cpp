@@ -209,94 +209,105 @@ double Phenotype::calculate_edge_value() {
 
 
 /************************************* MST **************************************/
-std::vector<std::array<Index, 4>> MST::find_outline() {
-	std::vector<std::array<Index, 4>> neighbor(mst_set.size());
 
-	for (int i = 0; i < mst_set.size(); i++) {
-		Index current_index = mst_set[i];
-
-		image.get_neighbors(current_index.row, current_index.col, neighbor[i]);
-	}
-
-	return neighbor;
-}
-
-void MST::update_costs(std::vector<std::array<Index, 4>> &neighbor) {
-	for (int current_index = 0; current_index < mst_set.size(); current_index++) {
-		for (int current_dir = 0; current_dir < 4; current_dir++) {
-			Index current_neighbor = neighbor[current_index][current_dir];
-			Index current_pixel = mst_set[current_index];
-
-			if (current_neighbor.is_none() || visited[current_neighbor.row][current_neighbor.col]) {
-				continue;
-			}
-
-			Pixel current_neighbor_pixel_value = image[current_neighbor.row][current_neighbor.col];
-			Pixel current_pixel_value = image[current_pixel.row][current_pixel.col];
-			double current_best_cost = edge_cost[current_neighbor.row][current_neighbor.col];
-			double current_cost = current_pixel_value.color_distance(current_neighbor_pixel_value);
-			
-			if (current_cost < current_best_cost) {
-				edge_cost[current_neighbor.row][current_neighbor.col] = current_cost;
-				best_dir[current_pixel.row][current_pixel.col] = (GRAPH_EDGE_DIR)current_dir;
-			}
-		}
-	}
-}
-
-Index MST::determine_best_neighbor(std::vector<std::array<Index, 4>> &neighbor) {
-	double best_cost = std::numeric_limits<double>::infinity();
-	Index best_neighbor = { -1, -1 };
-
-	for (int current_pixel = 0; current_pixel < neighbor.size(); current_pixel++) {
-		for (int dir = 0; dir < 4; dir++) {
+void MST::build_tree(Index start_node) {
+	outline.push_back(start_node);
+	mst_set.push_back(start_node);
+	pop_surrounding_caged_nodes(start_node);
 	
-			Index current_neighbor = neighbor[current_pixel][dir];
-			if (current_neighbor.is_none() || visited[current_neighbor.row][current_neighbor.col]) {
-				continue;
-			}
+	Index closest_node = start_node;
 
-			double current_cost = edge_cost[current_neighbor.row][current_neighbor.col];
+	while (outline.size() > 0) {
+		update_costs(closest_node);	
+		closest_node = find_closest_node();
+		add_node(closest_node);
+	}
+}
 
-			if (current_cost < best_cost) {
-				best_cost = current_cost;
-				best_neighbor = current_neighbor;
+void MST::update_costs(Index current_node) {
+	std::array<Index, 4> neighbor;
+	image.get_neighbors(current_node.row, current_node.col, neighbor);
+	
+	for (int j = 0; j < 4; j++) {
+		if (neighbor[j].is_none()) { continue; }
+
+		double dist = image.get_dist(current_node, neighbor[j]);
+		if (dist < edge_cost[neighbor[j].row][neighbor[j].col]) {
+			edge_cost[neighbor[j].row][neighbor[j].col] = dist;
+			dir[neighbor[j].row][neighbor[j].col] = (GRAPH_EDGE_DIR)j; //Indexing of neighbors in the same order as enum
+		}
+	}
+}
+
+Index MST::find_closest_node() {
+	Index closest_node = { -1, -1 };
+
+	//Iterate through the outline
+	for (int i = 0; i < outline.size(); i++) {
+		Index current_node = outline[i];
+
+		//Find all the neighbors of the outline
+		std::array<Index, 4> neighbor;
+		image.get_neighbors(current_node.row, current_node.col, neighbor);
+
+		//Iterate through the outlining neighbors and pick the closest one
+		double lowest_cost = std::numeric_limits<double>::infinity();
+		for (int j = 0; j < 4; j++) {
+			if (neighbor[j].is_none()) { continue; }
+			if (in_tree[neighbor[j].row][neighbor[j].col]) { continue; }
+
+			if (edge_cost[neighbor[j].row][neighbor[j].col] < lowest_cost) {
+				lowest_cost = edge_cost[neighbor[j].row][neighbor[j].col];
+				closest_node = neighbor[j];
 			}
 		}
 	}
 
-	return best_neighbor;
+	return closest_node;
 }
 
-void MST::build_MST(int row_start, int col_start) {
-	mst_set.push_back({ row_start, col_start });
-	unsigned int iter = 0;
+void MST::add_node(Index node) {
+	//Add the closest node to the tree
+	mst_set.push_back(node);
 
-	while (true) {
-		//neighbor.reserve(mst_set.size());
-		std::vector<std::array<Index, 4>> neighbor = find_outline();
+	if (unused_neighbors[node.row][node.col] != 0) {
+		outline.push_back(node);
+	}
 
-		update_costs(neighbor);
+	pop_surrounding_caged_nodes(node);
+}
 
-		Index best_neighbor = determine_best_neighbor(neighbor);
-		if (best_neighbor.is_none()) {
-			break;
+void MST::pop_surrounding_caged_nodes(Index node) {
+	std::array<Index, 4> neighbor;
+	image.get_neighbors(node.row, node.col, neighbor);
+
+	//See if any of the neighbors of the new node are caged
+	for (int j = 0; j < 4; j++) {
+		if (neighbor[j].is_none()) { continue; } //Neighbor is out of bounds
+
+		unused_neighbors[neighbor[j].row][neighbor[j].col]--;
+		if (!in_tree[neighbor[j].row][neighbor[j].col]) { continue; } //Node is not in the tree yet
+
+		//Neighbor[j] is caged in
+		if (unused_neighbors[neighbor[j].row][neighbor[j].col] == 0) {
+			
+			//Find neighbor[j] in the outline and erase
+			for (int i = 0; i < outline.size(); i++) {
+				if (outline[i] == neighbor[j]) {
+					outline.erase(outline.begin() + i);
+					break;
+				}
+
+			}
+
 		}
-
-		mst_set.push_back(best_neighbor);
-		std::cout << iter++ << std::endl;
 	}
 }
 
-void MST::genotype_generator(Genotype &genotype) {
-	int row_start = rand() % IMAGE_HEIGHT;
-	int col_start = rand() % IMAGE_WIDTH;
-
-	build_MST(row_start, col_start);
-
+void MST::genotype_generator(Genotype& genotype) {
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
-			genotype.edge[row][col] = best_dir[row][col];
+			genotype.edge[row][col] = dir[row][col];
 		}
 	}
 }
@@ -304,20 +315,24 @@ void MST::genotype_generator(Genotype &genotype) {
 MST::MST() {
 	const double INF = std::numeric_limits<double>::infinity();
 	edge_cost = new double*[IMAGE_HEIGHT];
-	best_dir = new GRAPH_EDGE_DIR*[IMAGE_HEIGHT];
-	visited = new bool*[IMAGE_HEIGHT];
+	dir = new GRAPH_EDGE_DIR*[IMAGE_HEIGHT];
+	in_tree = new bool*[IMAGE_HEIGHT];
+	unused_neighbors = new unsigned char*[IMAGE_HEIGHT];
+
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		edge_cost[row] = new double[IMAGE_WIDTH];
-		best_dir[row] = new GRAPH_EDGE_DIR[IMAGE_WIDTH];
-		visited[row] = new bool[IMAGE_WIDTH];
+		dir[row] = new GRAPH_EDGE_DIR[IMAGE_WIDTH];
+		in_tree[row] = new bool[IMAGE_WIDTH];
+		unused_neighbors[row] = new unsigned char[IMAGE_WIDTH];
 	}
 
 
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
 			edge_cost[row][col] = INF;
-			best_dir[row][col] = NONE;
-			visited[row][col] = false;
+			dir[row][col] = NONE;
+			in_tree[row][col] = false;
+			unused_neighbors[row][col] = 4;
 		}
 	}
 }
@@ -325,8 +340,9 @@ MST::MST() {
 MST::~MST() {
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		delete[] edge_cost[row];
-		delete[] best_dir[row];
-		delete[] visited[row];
+		delete[] dir[row];
+		delete[] in_tree[row];
+		delete[] unused_neighbors[row];
 	}
 }
 /********************************************************************************/
@@ -434,82 +450,4 @@ std::ostream& operator<<(std::ostream& os, Genotype genotype) {
 	}
 	return os;
 }
-/********************************************************************************/
-
-
-/*
-void Phenotype::determine_segment_outlines(std::vector<Segment>& segment) {
-
-for (int row = 0; row < IMAGE_HEIGHT; row++) {
-for (int col = 0; col < IMAGE_WIDTH; col++) {
-
-Index neighbor[4];
-get_neighbors(row, col, neighbor);
-Index current_pixel = { row, col };
-int current_pixel_id = belongs_to_segment[current_pixel.row][current_pixel.col];
-
-bool outline_found = false;
-for (int i = 0; i < 4; i++) {
-Index current_neighbor = neighbor[i];
-if (current_neighbor.is_none()) {
-continue;
-}
-
-int current_neighbor_id = belongs_to_segment[current_neighbor.row][current_neighbor.col];
-
-if (current_neighbor_id != current_pixel_id) {
-segment[current_neighbor_id - 1].add_pixel_to_outline(current_neighbor.row, current_neighbor.col);
-outline_found = true;
-}
-}
-if (outline_found) {
-segment[current_pixel_id - 1].add_pixel_to_outline(current_pixel.row, current_pixel.col);
-}
-
-}
-}
-
-}*/
-
-/*//test
-	std::cout << std::endl << std::endl;
-	bool in_temp = false;
-	char charr[IMAGE_WIDTH][IMAGE_HEIGHT];
-	for (int row2 = 0; row2 < IMAGE_HEIGHT; row2++) {
-		for (int col2 = 0; col2 < IMAGE_WIDTH; col2++) {
-			for (int i = 0; i < temp.size(); i++) {
-				if (temp[i].row == row2 && temp[i].col == col2) {
-					in_temp = true;
-					switch ((*genotype)[row2][col2]) {
-					case(LEFT):
-						charr[row2][col2] = '<';
-						break;
-					case(RIGHT):
-						charr[row2][col2] = '>';
-						break;
-					case(UP):
-						charr[row2][col2] = '^';
-						break;
-					case(DOWN):
-						charr[row2][col2] = 'v';
-						break;
-					case(NONE):
-						charr[row2][col2] = 'o';
-						break;
-					}
-					break;
-				}
-			}
-			if (!in_temp) {
-				charr[row2][col2] = '-';
-			}
-			in_temp = false;
-		}
-	}
-
-	for (int row2 = 0; row2 < IMAGE_HEIGHT; row2++) {
-		for (int col2 = 0; col2 < IMAGE_WIDTH; col2++) {
-			std::cout << charr[row2][col2] << "\t";
-		}
-		std::cout << std::endl;
-		}*/
+/********************************************************************************/ 

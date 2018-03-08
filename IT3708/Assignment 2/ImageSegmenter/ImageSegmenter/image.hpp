@@ -27,6 +27,7 @@ struct Index {
 	int row, col; 
 
 	bool is_none() { return row == -1; }
+	bool operator==(Index rhs) { return this->row == rhs.row && this->col == rhs.col; }
 };
 
 class Image {
@@ -43,7 +44,7 @@ public:
 	void read(char* image_dir);
 
 	void calculate_color_distances() const;
-	double get_dist(const Index& p1, const Index& p2);
+	double get_dist(const Index& p1, const Index& p2) const;
 
 	Index next_index(int row, int col, GRAPH_EDGE_DIR dir) const;
 	void get_neighbors(int row, int col, std::array<Index, 4> neighbor) const;

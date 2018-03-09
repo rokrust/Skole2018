@@ -7,12 +7,8 @@ void print_index(Index index) {
 }
 
 int main() {
-	Genotype genotype;
-	MST mst;
-	mst.genotype_generator(genotype);
-	std::cout << genotype;
-
-
+	Population population(1, 4, 0.2, 0.8);
 	system("PAUSE");
+
 	return 0;
 }

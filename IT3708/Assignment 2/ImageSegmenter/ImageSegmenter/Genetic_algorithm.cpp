@@ -4,15 +4,22 @@
 #include <limits>
 #include <array>
 #include <chrono>
+#include <thread>
 /********************************** Population **********************************/
-Population::Population(int population_size, int archive_size): archive_size(archive_size) {
+Population::Population(int population_size, int archive_size, double mutation_rate, double crossover_rate): 
+	archive_size(archive_size), mutation_rate(mutation_rate), crossover_rate(crossover_rate) {
 	population.reserve(population_size);
+	
+	std::vector<std::thread> thread_vec(population_size);
+	std::vector<MST> mst_vec(population_size);
+	for (int i = 0; i < population_size; i++) {
+		mst_vec.push_back(MST());
+		population.push_back(Genotype());
+		thread_vec.push_back(std::thread(&MST::genotype_generator, mst_vec[i], population[i]));
+	}
 
 	for (int i = 0; i < population_size; i++) {
-		Genotype genotype;
-		MST mst;
-		mst.genotype_generator(genotype);
-		population.push_back(genotype);
+		thread_vec[i].join();
 	}
 }
 /********************************************************************************/
@@ -205,188 +212,99 @@ double Phenotype::calculate_edge_value() {
 
 
 /************************************* MST **************************************/
-void MST::build_tree(Index start_node) {
-	using namespace std::chrono;
-	add_node(start_node);
-	Index closest_node = start_node;
-	
-	high_resolution_clock::time_point t1;
-	high_resolution_clock::time_point t2;
-	duration<double> time_span;
-	int i = 0;
-	std::cout << '(' << start_node.row << ", " << start_node.col << ')' << std::endl;
+void MST::build_tree(Index start_index) {
+	Node start_node = { 0, NONE, start_index };
+	add_node_to_mst(start_node);
+	add_neighbors_to_queue(start_node);
 
-	while (true){//outline.size() > 0) {
-		//if (i++ % 1000 == 0) {
-		//	std::cout << outline.size() << std::endl;
-		//}
-		//t1 = high_resolution_clock::now();
-		update_costs(closest_node);	
-		//t2 = high_resolution_clock::now();
-		//time_span = duration_cast<duration<double>>(t2 - t1);
+	while (true) {//outline.size() > 0) {
+		Node node = pop_from_queue();
+		if (node.index.is_none()) { break; }
+
+		add_node_to_mst(node);
+		add_neighbors_to_queue(node);
+	}
+}
+
+Node MST::pop_from_queue() {
+
+	for (int i = priority_queue.size() - 1; i >= 0; i--) {
+		Node current_node = priority_queue[i];
 		
-		//std::cout << time_span.count() << std::endl;
-		
-		//t1 = high_resolution_clock::now();
-		closest_node = find_closest_node();
-		//t2 = high_resolution_clock::now();
-		//time_span = duration_cast<duration<double>>(t2 - t1);
-
-		//std::cout << time_span.count() << std::endl;
-		if (closest_node.is_none()) { 
-			break; 
-		}
-
-		//t1 = high_resolution_clock::now();
-		add_node(closest_node);
-		//t2 = high_resolution_clock::now();
-		//time_span = duration_cast<duration<double>>(t2 - t1);
-
-		//std::cout << time_span.count() << std::endl << std::endl;
-
-	}
-
-}
-
-void MST::update_costs(Index current_node) {
-	std::array<Index, 4> neighbor = {};
-	image.get_neighbors(current_node.row, current_node.col, neighbor);
-	
-	for (int j = 0; j < 4; j++) {
-		if (neighbor[j].is_none()) { continue; }
-		if (in_tree[neighbor[j].row][neighbor[j].col]) { continue; }
-
-		double dist = image.distance_between(current_node, neighbor[j]);
-		if (dist < edge_cost[neighbor[j].row][neighbor[j].col]) {
-			edge_cost[neighbor[j].row][neighbor[j].col] = dist;
-			dir[neighbor[j].row][neighbor[j].col] = neighbor[j].get_direction_to(current_node);
-		}
-	}
-}
-
-Index MST::find_closest_node() {
-	Index closest_node = { -1, -1 };
-
-	//Iterate through the outline
-	for (int i = 0; i < outline.size(); i++) {
-		Index current_node = outline[i];
-
-		//Find all the neighbors of the outline
-		std::array<Index, 4> neighbor = {};
-		image.get_neighbors(current_node.row, current_node.col, neighbor);
-
-		//Iterate through the outlining neighbors and pick the closest one
-		double lowest_cost = std::numeric_limits<double>::infinity();
-		for (int j = 0; j < 4; j++) {
-			if (neighbor[j].is_none()) { continue; }
-			if (in_tree[neighbor[j].row][neighbor[j].col]) { continue; }
-
-			if (edge_cost[neighbor[j].row][neighbor[j].col] < lowest_cost) {
-				lowest_cost = edge_cost[neighbor[j].row][neighbor[j].col];
-				closest_node = neighbor[j];
-			}
+		priority_queue.pop_back();
+		if (!in_tree[current_node.index.row][current_node.index.col]) {
+			return current_node;
 		}
 	}
 
-	return closest_node;
+	return { 0, NONE, { -1, -1 } };
 }
 
-void MST::add_node(Index node) {
-	//Add the closest node to the tree
+void MST::add_node_to_mst(Node node) {
+	in_tree[node.index.row][node.index.col] = true;
 	mst_set.push_back(node);
-	in_tree[node.row][node.col] = true;
-
-	if (unused_neighbors[node.row][node.col] != 0) {
-		outline.push_back(node);
-	}
-
-	pop_surrounding_caged_nodes(node);
 }
 
-void MST::pop_surrounding_caged_nodes(Index node) {
-	std::array<Index, 4> neighbor = {};
-	image.get_neighbors(node.row, node.col, neighbor);
+void MST::add_neighbors_to_queue(Node node) {
+	std::array<Index, 4> neighbor;
+	image.get_neighbors(node.index.row, node.index.col, neighbor);
 
-	//See if any of the neighbors of the new node are caged
-	for (int j = 0; j < 4; j++) {
-		if (neighbor[j].is_none()) { continue; } //Neighbor is out of bounds
-		unused_neighbors[neighbor[j].row][neighbor[j].col]--;
+	//Iterate through all neighbors of the added node
+	for (int i = 0; i < 4; i++) {
+		if (neighbor[i].is_none()) { continue; } //Skip invalid neighbors (out of bounds)
 
-		if (!in_tree[neighbor[j].row][neighbor[j].col]) { continue; } //Node is not in the tree yet
+		//Add neighbors to the queue if not already in the tree
+		if (!in_tree[neighbor[i].row][neighbor[i].col]) {
+			double cost = image.distance_between(neighbor[i], node.index);
+			GRAPH_EDGE_DIR dir = neighbor[i].get_direction_to(node.index);
 
-		//Neighbor[j] is caged in
-		if (unused_neighbors[neighbor[j].row][neighbor[j].col] == 0) {
-			
-			//Find neighbor[j] in the outline and erase
-			for (int i = 0; i < outline.size(); i++) {
-				if (outline[i] == neighbor[j]) {
-					outline.erase(outline.begin() + i);
-					break;
-				}
-
-			}
+			insert_in_queue({ cost, dir, neighbor[i] });
 
 		}
 	}
+}
+
+void MST::insert_in_queue(Node node) {
+	for (int i = priority_queue.size() - 1; i >= 0; i--) {
+		if (priority_queue[i].cost > node.cost) {
+			priority_queue.insert(priority_queue.begin() + i, node);
+			return;
+		}
+	}
+
+	priority_queue.insert(priority_queue.begin(), node);
 }
 
 void MST::genotype_generator(Genotype& genotype) {
 	Index start_node = { rand() % IMAGE_HEIGHT, rand() % IMAGE_WIDTH };
 	build_tree(start_node);
 
-	for (int row = 0; row < IMAGE_HEIGHT; row++) {
-		for (int col = 0; col < IMAGE_WIDTH; col++) {
-			genotype.edge[row][col] = dir[row][col];
-		}
+	for (int i = 0; i < mst_set.size(); i++) {
+		Node current_node = mst_set[i];
+		genotype.edge[current_node.index.row][current_node.index.col] = current_node.dir;
 	}
 }
 
 MST::MST() {
 	const double INF = std::numeric_limits<double>::infinity();
-	edge_cost = new double*[IMAGE_HEIGHT];
-	dir = new GRAPH_EDGE_DIR*[IMAGE_HEIGHT];
 	in_tree = new bool*[IMAGE_HEIGHT];
-	unused_neighbors = new unsigned char*[IMAGE_HEIGHT];
 
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
-		edge_cost[row] = new double[IMAGE_WIDTH];
-		dir[row] = new GRAPH_EDGE_DIR[IMAGE_WIDTH];
 		in_tree[row] = new bool[IMAGE_WIDTH];
-		unused_neighbors[row] = new unsigned char[IMAGE_WIDTH];
 	}
 
 
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
-			edge_cost[row][col] = INF;
-			dir[row][col] = NONE;
 			in_tree[row][col] = false;
-			unused_neighbors[row][col] = 4;
 
 		}
 	}
-	for (int row = 1; row < IMAGE_HEIGHT; row++) {
-		unused_neighbors[row][0] = 3;
-		unused_neighbors[row][IMAGE_WIDTH - 1] = 3;
-	}
-	
-	for (int col = 1; col < IMAGE_WIDTH; col++) {
-		unused_neighbors[0][col] = 3;
-		unused_neighbors[IMAGE_HEIGHT - 1][col] = 3;
-	}
-
-	unused_neighbors[0][0] = 2;
-	unused_neighbors[0][IMAGE_WIDTH - 1] = 2;
-	unused_neighbors[IMAGE_HEIGHT - 1][0] = 2;
-	unused_neighbors[IMAGE_HEIGHT - 1][IMAGE_WIDTH - 1] = 2;
 }
 
 MST::~MST() {
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
-		delete[] edge_cost[row];
-		delete[] dir[row];
-		delete[] in_tree[row];
-		delete[] unused_neighbors[row];
+		delete [] in_tree[row];
 	}
 }
 /********************************************************************************/

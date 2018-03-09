@@ -2,8 +2,8 @@
 #include <vector>
 #include <iterator>
 
-#define IMAGE_HEIGHT 321
-#define IMAGE_WIDTH 481
+#define IMAGE_HEIGHT 5//321
+#define IMAGE_WIDTH 5//481
 #define N_PIXELS IMAGE_HEIGHT*IMAGE_WIDTH
 #define IMAGE_DIR "Test image.jpg"
 

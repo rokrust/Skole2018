@@ -9,11 +9,12 @@ class Genotype; class Phenotype;
 class Population {
 private:
 	int archive_size;
+	double mutation_rate, crossover_rate;
 	std::vector<Genotype> population;
 
 public:
 	Population() {}
-	Population(int population_size, int archive_size);
+	Population(int population_size, int archive_size, double mutation_rate, double crossover_rate);
 
 	void next_generation();
 	void tournament_selection();
@@ -43,25 +44,23 @@ public:
 	friend class MST;
 };
 
+struct Node { double cost; GRAPH_EDGE_DIR dir; Index index; };
+
 class MST {
-	
+
 private:
-	double** edge_cost;
-	unsigned char** unused_neighbors;
-	GRAPH_EDGE_DIR** dir;
 	bool** in_tree;
 	
-	std::vector<Index> mst_set;
-	std::vector<Index> outline;
-
+	std::vector<Node> mst_set;
+	std::vector<Node> priority_queue;
 public:
 	MST();
 	~MST();
 
-	void update_costs(Index current_node);
-	Index find_closest_node();
-	void add_node(Index closest_node);
-	void pop_surrounding_caged_nodes(Index node);
+	void insert_in_queue(Node node);
+	Node pop_from_queue();
+	void add_neighbors_to_queue(Node node);
+	void add_node_to_mst(Node closest_node);
 	void genotype_generator(Genotype& genotype);
 	void build_tree(Index start_node);
 };

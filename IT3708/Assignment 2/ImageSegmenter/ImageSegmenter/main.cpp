@@ -7,7 +7,11 @@ void print_index(Index index) {
 }
 
 int main() {
-	image.calculate_color_distances();
+	Genotype genotype;
+	MST mst;
+	mst.genotype_generator(genotype);
+	std::cout << genotype;
+
 
 	system("PAUSE");
 	return 0;

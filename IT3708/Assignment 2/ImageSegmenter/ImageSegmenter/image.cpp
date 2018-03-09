@@ -55,6 +55,24 @@ Pixel Segment::calculate_centroid() {
 	return centroid;
 }
 
+GRAPH_EDGE_DIR Index::get_direction_to(Index p1) {
+	Index p_diff = { this->row - p1.row, this->col - p1.col };
+	if (p_diff.col == 1) {
+		return LEFT;
+	}
+	else if (p_diff.col == -1) {
+		return RIGHT;
+	}
+	else if (p_diff.row == 1) {
+		return UP;
+	}
+	else if (p_diff.row == -1) {
+		return DOWN;
+	}
+	
+	return NONE;
+}
+
 Image::Image() {
 	pixels = new Pixel*[IMAGE_HEIGHT];
 	horizontal_color_distance = new double[IMAGE_HEIGHT*(IMAGE_WIDTH-1)];
@@ -67,6 +85,7 @@ Image::Image() {
 
 Image::Image(char* image_dir): Image() {
 	this->read(image_dir);
+	calculate_color_distances();
 }
 
 Image::~Image() {
@@ -104,18 +123,18 @@ void Image::calculate_color_distances() const {
 
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH - 1; col++) {
-			horizontal_color_distance[row*(IMAGE_WIDTH - 1) + col] = image[row][col].color_distance(image[row][col + 1]);
+			horizontal_color_distance[row*(IMAGE_WIDTH - 1) + col] = pixels[row][col].color_distance(pixels[row][col + 1]);
 		}
 	}
 
 	for (int row = 0; row < IMAGE_HEIGHT - 1; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
-			vertical_color_distance[row*IMAGE_WIDTH + col] = image[row][col].color_distance(image[row + 1][col]);
+			vertical_color_distance[row*IMAGE_WIDTH + col] = pixels[row][col].color_distance(pixels[row + 1][col]);
 		}
 	}
 }
 
-double Image::get_dist(const Index& p1, const Index& p2) const {
+double Image::distance_between(const Index& p1, const Index& p2) const {
 	Index p_diff = { p1.row - p2.row, p1.col - p2.col };
 
 	if (p_diff.col == 1) {
@@ -127,18 +146,18 @@ double Image::get_dist(const Index& p1, const Index& p2) const {
 	}
 	
 	else if (p_diff.row == -1) {
-		return vertical_color_distance[p1.row * (IMAGE_WIDTH - 1) + p1.col];
+		return vertical_color_distance[p1.row * IMAGE_WIDTH + p1.col];
 	}
 
 	else if(p_diff.row == 1) {
-		return vertical_color_distance[p2.row * (IMAGE_WIDTH - 1) + p2.col];
+		return vertical_color_distance[p2.row * IMAGE_WIDTH + p2.col];
 	}
 
 	//Pixels are not neighbors
 	return std::numeric_limits<double>::infinity();
 }
 
-void Image::get_neighbors(int row, int col, std::array<Index, 4> neighbor) const {
+void Image::get_neighbors(int row, int col, std::array<Index, 4>& neighbor) const {
 	col != 0 ? neighbor[0] = { row, col - 1 } : neighbor[0] = { -1, -1 };
 	col != IMAGE_WIDTH - 1 ? neighbor[1] = { row, col + 1 } : neighbor[1] = { -1, -1 };
 	row != 0 ? neighbor[2] = { row - 1, col } : neighbor[2] = { -1, -1 };
@@ -148,9 +167,9 @@ void Image::get_neighbors(int row, int col, std::array<Index, 4> neighbor) const
 void Image::read(char* image_dir){
 	cv::Mat mat;
 	mat = cv::imread(image_dir, CV_LOAD_IMAGE_COLOR);
-	if (IMAGE_HEIGHT != mat.rows || IMAGE_WIDTH != mat.cols) {
-		std::cout << "IMAGE_HEIGHT and/or IMAGE_WIDTH set to wrong value\n";
-	}
+	//if (IMAGE_HEIGHT != mat.rows || IMAGE_WIDTH != mat.cols) {
+	//	std::cout << "IMAGE_HEIGHT and/or IMAGE_WIDTH set to wrong value\n";
+	//}
 
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {

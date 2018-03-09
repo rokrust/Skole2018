@@ -179,8 +179,7 @@ double Phenotype::calculate_edge_value() {
 
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
-			Index dummy = { -1, -1 };
-			std::array<Index, 4> neighbor = {dummy, dummy, dummy, dummy};
+			std::array<Index, 4> neighbor = {};
 
 			image.get_neighbors(row, col, neighbor);
 			Index current_pixel = { row, col };
@@ -188,15 +187,12 @@ double Phenotype::calculate_edge_value() {
 
 			for (int i = 0; i < 4; i++) {
 				Index current_neighbor = neighbor[i];
-				if (current_neighbor.is_none()) {
-					continue;
-				}
+				if (current_neighbor.is_none()) { continue; }
+				
 				int current_neighbor_id = belongs_to_segment[current_neighbor.row][current_neighbor.col];
 
 				if (current_neighbor_id != current_pixel_id) {
-					Pixel p1 = image[current_pixel.row][current_pixel.col];
-					Pixel p2 = image[current_neighbor.row][current_neighbor.col];
-					edge_value += p1.color_distance(p2);
+					edge_value += image.distance_between(current_pixel, current_neighbor);
 				}
 			}
 		}
@@ -209,32 +205,61 @@ double Phenotype::calculate_edge_value() {
 
 
 /************************************* MST **************************************/
-
 void MST::build_tree(Index start_node) {
-	outline.push_back(start_node);
-	mst_set.push_back(start_node);
-	pop_surrounding_caged_nodes(start_node);
-	
+	using namespace std::chrono;
+	add_node(start_node);
 	Index closest_node = start_node;
+	
+	high_resolution_clock::time_point t1;
+	high_resolution_clock::time_point t2;
+	duration<double> time_span;
+	int i = 0;
+	std::cout << '(' << start_node.row << ", " << start_node.col << ')' << std::endl;
 
-	while (outline.size() > 0) {
+	while (true){//outline.size() > 0) {
+		//if (i++ % 1000 == 0) {
+		//	std::cout << outline.size() << std::endl;
+		//}
+		//t1 = high_resolution_clock::now();
 		update_costs(closest_node);	
+		//t2 = high_resolution_clock::now();
+		//time_span = duration_cast<duration<double>>(t2 - t1);
+		
+		//std::cout << time_span.count() << std::endl;
+		
+		//t1 = high_resolution_clock::now();
 		closest_node = find_closest_node();
+		//t2 = high_resolution_clock::now();
+		//time_span = duration_cast<duration<double>>(t2 - t1);
+
+		//std::cout << time_span.count() << std::endl;
+		if (closest_node.is_none()) { 
+			break; 
+		}
+
+		//t1 = high_resolution_clock::now();
 		add_node(closest_node);
+		//t2 = high_resolution_clock::now();
+		//time_span = duration_cast<duration<double>>(t2 - t1);
+
+		//std::cout << time_span.count() << std::endl << std::endl;
+
 	}
+
 }
 
 void MST::update_costs(Index current_node) {
-	std::array<Index, 4> neighbor;
+	std::array<Index, 4> neighbor = {};
 	image.get_neighbors(current_node.row, current_node.col, neighbor);
 	
 	for (int j = 0; j < 4; j++) {
 		if (neighbor[j].is_none()) { continue; }
+		if (in_tree[neighbor[j].row][neighbor[j].col]) { continue; }
 
-		double dist = image.get_dist(current_node, neighbor[j]);
+		double dist = image.distance_between(current_node, neighbor[j]);
 		if (dist < edge_cost[neighbor[j].row][neighbor[j].col]) {
 			edge_cost[neighbor[j].row][neighbor[j].col] = dist;
-			dir[neighbor[j].row][neighbor[j].col] = (GRAPH_EDGE_DIR)j; //Indexing of neighbors in the same order as enum
+			dir[neighbor[j].row][neighbor[j].col] = neighbor[j].get_direction_to(current_node);
 		}
 	}
 }
@@ -247,7 +272,7 @@ Index MST::find_closest_node() {
 		Index current_node = outline[i];
 
 		//Find all the neighbors of the outline
-		std::array<Index, 4> neighbor;
+		std::array<Index, 4> neighbor = {};
 		image.get_neighbors(current_node.row, current_node.col, neighbor);
 
 		//Iterate through the outlining neighbors and pick the closest one
@@ -269,6 +294,7 @@ Index MST::find_closest_node() {
 void MST::add_node(Index node) {
 	//Add the closest node to the tree
 	mst_set.push_back(node);
+	in_tree[node.row][node.col] = true;
 
 	if (unused_neighbors[node.row][node.col] != 0) {
 		outline.push_back(node);
@@ -278,14 +304,14 @@ void MST::add_node(Index node) {
 }
 
 void MST::pop_surrounding_caged_nodes(Index node) {
-	std::array<Index, 4> neighbor;
+	std::array<Index, 4> neighbor = {};
 	image.get_neighbors(node.row, node.col, neighbor);
 
 	//See if any of the neighbors of the new node are caged
 	for (int j = 0; j < 4; j++) {
 		if (neighbor[j].is_none()) { continue; } //Neighbor is out of bounds
-
 		unused_neighbors[neighbor[j].row][neighbor[j].col]--;
+
 		if (!in_tree[neighbor[j].row][neighbor[j].col]) { continue; } //Node is not in the tree yet
 
 		//Neighbor[j] is caged in
@@ -305,6 +331,9 @@ void MST::pop_surrounding_caged_nodes(Index node) {
 }
 
 void MST::genotype_generator(Genotype& genotype) {
+	Index start_node = { rand() % IMAGE_HEIGHT, rand() % IMAGE_WIDTH };
+	build_tree(start_node);
+
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
 			genotype.edge[row][col] = dir[row][col];
@@ -333,8 +362,23 @@ MST::MST() {
 			dir[row][col] = NONE;
 			in_tree[row][col] = false;
 			unused_neighbors[row][col] = 4;
+
 		}
 	}
+	for (int row = 1; row < IMAGE_HEIGHT; row++) {
+		unused_neighbors[row][0] = 3;
+		unused_neighbors[row][IMAGE_WIDTH - 1] = 3;
+	}
+	
+	for (int col = 1; col < IMAGE_WIDTH; col++) {
+		unused_neighbors[0][col] = 3;
+		unused_neighbors[IMAGE_HEIGHT - 1][col] = 3;
+	}
+
+	unused_neighbors[0][0] = 2;
+	unused_neighbors[0][IMAGE_WIDTH - 1] = 2;
+	unused_neighbors[IMAGE_HEIGHT - 1][0] = 2;
+	unused_neighbors[IMAGE_HEIGHT - 1][IMAGE_WIDTH - 1] = 2;
 }
 
 MST::~MST() {

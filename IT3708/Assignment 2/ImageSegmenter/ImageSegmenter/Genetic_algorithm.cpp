@@ -6,21 +6,40 @@
 #include <chrono>
 #include <thread>
 /********************************** Population **********************************/
-Population::Population(int population_size, int archive_size, double mutation_rate, double crossover_rate): 
+Population::Population(int population_size, int archive_size, double mutation_rate, double crossover_rate, int n_concurrent_threads): 
 	archive_size(archive_size), mutation_rate(mutation_rate), crossover_rate(crossover_rate) {
 	population.reserve(population_size);
 	
 	std::vector<std::thread> thread_vec;
-	for (int i = 0; i < population_size; i++) {
+	for (int i = 0; i < n_concurrent_threads; i++) {
 		population.push_back(Genotype());
 		Index root_node = { rand() % IMAGE_HEIGHT, rand() % IMAGE_WIDTH };
 		thread_vec.push_back(std::thread(&MST::genotype_generator, MST(), std::ref(population[i]), root_node));
 	}
 
-	for (int i = 0; i < population_size; i++) {
-		thread_vec[i].join();
-	}
+	int remaining_individuals = population_size;
+	while (remaining_individuals) {
+		for (int i = 0; i < n_concurrent_threads; i++) {
+			std::cout << "Remaining " << remaining_individuals << std::endl;
+			if (thread_vec[i].joinable()) {
+				std::cout << "Joining thread " << i << std::endl;
+				thread_vec[i].join();
+				remaining_individuals--;
 
+				//Replace the old thread while individuals still need to be initialized
+				if (remaining_individuals >= n_concurrent_threads) {
+					std::cout << "Creating thread\n";
+					population.push_back(Genotype());
+					Index root_node = { rand() % IMAGE_HEIGHT, rand() % IMAGE_WIDTH };
+					thread_vec[i] = std::thread(&MST::genotype_generator, MST(), std::ref(population[population.size()-1]), root_node);
+				}
+
+			}
+		}
+		//using namespace std::chrono_literals;
+		//using namespace std::chrono;
+		//std::this_thread::sleep_for(milliseconds(50));
+	}
 }
 /********************************************************************************/
 

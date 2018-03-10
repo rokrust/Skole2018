@@ -89,7 +89,7 @@ private:
 
 public:
 	Population() {}
-	Population(int population_size, int archive_size, double mutation_rate, double crossover_rate);
+	Population(int population_size, int archive_size, double mutation_rate, double crossover_rate, int n_concurrent_threads = 4);
 
 	void next_generation();
 	void tournament_selection();

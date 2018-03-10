@@ -10,17 +10,17 @@ Population::Population(int population_size, int archive_size, double mutation_ra
 	archive_size(archive_size), mutation_rate(mutation_rate), crossover_rate(crossover_rate) {
 	population.reserve(population_size);
 	
-	std::vector<std::thread> thread_vec(population_size);
-	std::vector<MST> mst_vec(population_size);
+	std::vector<std::thread> thread_vec;
 	for (int i = 0; i < population_size; i++) {
-		mst_vec.push_back(MST());
 		population.push_back(Genotype());
-		thread_vec.push_back(std::thread(&MST::genotype_generator, mst_vec[i], population[i]));
+		Index root_node = { rand() % IMAGE_HEIGHT, rand() % IMAGE_WIDTH };
+		thread_vec.push_back(std::thread(&MST::genotype_generator, MST(), std::ref(population[i]), root_node));
 	}
 
 	for (int i = 0; i < population_size; i++) {
 		thread_vec[i].join();
 	}
+
 }
 /********************************************************************************/
 
@@ -78,12 +78,7 @@ void Phenotype::build_segment_from_pixel(int row, int col) {
 	static int segment_id = 0;
 	segment_id++;
 
-	using namespace std::chrono;
-	high_resolution_clock::time_point t1;
-	high_resolution_clock::time_point t2;
-
 	// As long as a pixel was added to the segment
-	t1 = high_resolution_clock::now();
 	while (active_edge.size() != 0) {
 		new_active_edge.clear();
 		
@@ -107,9 +102,6 @@ void Phenotype::build_segment_from_pixel(int row, int col) {
 		//All members of the old edge handled. Go on to new edge
 		active_edge = new_active_edge;
 	}
-	t2 = high_resolution_clock::now();
-	auto duration = duration_cast<microseconds>(t2 - t1).count();
-	std::cout << duration << std::endl;
 
 	segment.push_back(current_segment);
 }
@@ -212,12 +204,13 @@ double Phenotype::calculate_edge_value() {
 
 
 /************************************* MST **************************************/
+
 void MST::build_tree(Index start_index) {
 	Node start_node = { 0, NONE, start_index };
 	add_node_to_mst(start_node);
 	add_neighbors_to_queue(start_node);
 
-	while (true) {//outline.size() > 0) {
+	while (true) {
 		Node node = pop_from_queue();
 		if (node.index.is_none()) { break; }
 
@@ -275,14 +268,14 @@ void MST::insert_in_queue(Node node) {
 	priority_queue.insert(priority_queue.begin(), node);
 }
 
-void MST::genotype_generator(Genotype& genotype) {
-	Index start_node = { rand() % IMAGE_HEIGHT, rand() % IMAGE_WIDTH };
-	build_tree(start_node);
+void MST::genotype_generator(Genotype& genotype, Index root_node) {
+	build_tree(root_node);
 
 	for (int i = 0; i < mst_set.size(); i++) {
 		Node current_node = mst_set[i];
 		genotype.edge[current_node.index.row][current_node.index.col] = current_node.dir;
 	}
+
 }
 
 MST::MST() {
@@ -302,11 +295,37 @@ MST::MST() {
 	}
 }
 
+MST::MST(const MST &original): MST() {
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			this->in_tree[row][col] = original.in_tree[row][col];
+		}
+	}
+
+	this->mst_set = original.mst_set;
+	this->priority_queue = original.priority_queue;
+}
+
+MST& MST::operator=(const MST &rhs) {
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			this->in_tree[row][col] = rhs.in_tree[row][col];
+		}
+	}
+
+	this->mst_set = rhs.mst_set;
+	this->priority_queue = rhs.priority_queue;
+
+	return *this;
+}
+
 MST::~MST() {
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
-		delete [] in_tree[row];
+		delete[] in_tree[row];
 	}
+	delete[] in_tree;
 }
+
 /********************************************************************************/
 
 
@@ -320,18 +339,20 @@ Genotype::Genotype() {
 	}
 }
 
-Genotype::~Genotype() {
+Genotype::Genotype(const Genotype& original): Genotype() {
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
-		delete [] edge[row];
+		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			this->edge[row][col] = original.edge[row][col];
+		}
 	}
 }
 
-void Genotype::random_init() {
+Genotype::~Genotype() {
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
-		for (int col = 0; col < IMAGE_WIDTH; col++) {
-			edge[row][col] = (GRAPH_EDGE_DIR)(rand() % 5);
-		}
+		delete[] edge[row];
 	}
+
+	delete[] edge;
 }
 
 //Member functions
@@ -385,6 +406,16 @@ void Genotype::crossover_two_point(const Genotype& p2, Genotype& c1, Genotype& c
 		c2_ptr[i] = p2_ptr[i];
 	}
 	
+}
+
+Genotype& Genotype::operator=(const Genotype &rhs) {
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			this->edge[row][col] = rhs.edge[row][col];
+		}
+	}
+
+	return *this;
 }
 
 std::ostream& operator<<(std::ostream& os, Genotype genotype) {

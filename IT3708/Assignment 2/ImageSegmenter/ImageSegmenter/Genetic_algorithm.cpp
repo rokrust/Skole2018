@@ -6,10 +6,13 @@
 #include <chrono>
 #include <thread>
 /********************************** Population **********************************/
-Population::Population(int population_size, int archive_size, double mutation_rate, double crossover_rate, int n_concurrent_threads): 
-	archive_size(archive_size), mutation_rate(mutation_rate), crossover_rate(crossover_rate) {
+Population::Population(int population_size, int archive_size, int tournament_size, 
+					   double mutation_rate, double crossover_rate, 
+					   int n_concurrent_threads) :
+	archive_size(archive_size), tournament_size(tournament_size), mutation_rate(mutation_rate), crossover_rate(crossover_rate) {
 	population.reserve(population_size);
-	
+	//population_phenotypes.reserve(population_size);
+
 	std::vector<std::thread> thread_vec;
 	for (int i = 0; i < n_concurrent_threads; i++) {
 		population.push_back(Genotype());
@@ -36,14 +39,145 @@ Population::Population(int population_size, int archive_size, double mutation_ra
 
 			}
 		}
-		//using namespace std::chrono_literals;
-		//using namespace std::chrono;
-		//std::this_thread::sleep_for(milliseconds(50));
+		using namespace std::chrono_literals;
+		using namespace std::chrono;
+		std::this_thread::sleep_for(milliseconds(5));
+	}
+
+	for (int i = 0; i < population.size(); i++) {
+		population[i].add_random_root_nodes();
+	}
+}
+
+void Population::crowding_distance() {
+	for (int front = 0; front < population_phenotypes.size(); front++) {
+	}
+
+}
+
+Phenotype* Population::tournament_selection() {
+	int i = rand() % population.size();
+	Phenotype* winner = &population_phenotypes[i];
+
+	for (int k = 0; k < tournament_size-1; k++) {
+		int i = rand() % population.size();
+		Phenotype* current_competitor = &population_phenotypes[i];
+
+		//pseudocode
+		if (current_competitor->dominates(*winner)) {
+			winner = current_competitor;
+		}
+		
+	}
+
+	return winner;
+}
+
+void Population::create_phenotypes() {
+	for (int i = 0; i < population.size(); i++) {
+		population_phenotypes.push_back(Phenotype(population[i]));
+		population_phenotypes[i].calculate_edge_value();
+		population_phenotypes[i].calculate_overall_deviation();
+	}
+}
+
+void Population::next_generation() {
+	//Genotypes
+		//mutate
+		//crossover
+	
+	create_phenotypes();
+		//fitness calculation
+	//selection
+		//pareto fronts
+		//crowding distance
+		//tournament_selection
+}
+
+void Population::non_dominated_sort() {
+	std::vector<std::vector<int>> fronts(1);
+	std::vector<std::vector<int>> dominates(population.size());
+	//const int size = population.size();
+	int* dominated_by = new int[population.size()] ();
+
+	//Find out who dominates whom
+	for (int i = 0; i < population.size(); i++) {
+		Phenotype* current_phenotype = &population_phenotypes[i];
+
+		for (int j = i+1; j < population.size(); j++) {
+			
+			if (current_phenotype->dominates(population_phenotypes[j])) {
+				dominates[i].push_back(j);
+				dominated_by[j]++;
+			}
+			else if (population_phenotypes[j].dominates(*current_phenotype)){
+				dominates[j].push_back(i);
+				dominated_by[i]++;
+			}
+		}
+		
+		if (dominated_by[i] == 0) {
+			fronts[0].push_back(i);
+		}
+	}
+	
+	//Push phenotype pointers to the pareto fronts
+	std::vector<Phenotype*> next_front(1);
+	for (int front_counter = 0; next_front.size() != 0; front_counter++) {
+		next_front.clear();
+
+		for (int i = 0; i < fronts[front_counter].size(); i++) {
+			for (int j = 0; j < dominates[i].size(); j++) {
+				int current_dominated = dominates[i][j];
+				
+				if (--dominated_by[current_dominated] == 0) {
+					next_front.push_back(&population_phenotypes[current_dominated]);
+					std::cout << current_dominated << '\t';
+				}
+			}
+		}
+
+		pareto_fronts.push_back(next_front);
+		std::cout << std::endl;
 	}
 }
 /********************************************************************************/
 
 /*********************************** Phenotype **********************************/
+Phenotype::Phenotype(const Phenotype& phenotype) {
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			this->is_part_of_segment[row][col] = phenotype.is_part_of_segment[row][col];
+			this->belongs_to_segment[row][col] = phenotype.belongs_to_segment[row][col];
+			this->genotype = phenotype.genotype;
+			this->segment = phenotype.segment;
+			this->edge_value = phenotype.edge_value;
+			this->overall_deviation = phenotype.overall_deviation;
+		}
+	}
+}
+
+Phenotype& Phenotype::operator=(const Phenotype& rhs) {
+
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			this->is_part_of_segment[row][col] = rhs.is_part_of_segment[row][col];
+			this->belongs_to_segment[row][col] = rhs.belongs_to_segment[row][col];
+			this->genotype = rhs.genotype;
+			this->segment = rhs.segment;
+			this->edge_value = rhs.edge_value;
+			this->overall_deviation = rhs.overall_deviation;
+		}
+	}
+
+	return *this;
+}
+
+bool Phenotype::dominates(const Phenotype& p2) {
+	return (this->edge_value >= p2.edge_value && this->overall_deviation > p2.overall_deviation)
+		|| (this->edge_value > p2.edge_value && this->overall_deviation >= p2.overall_deviation);
+}
+
 void Phenotype::add_ingoing_to_active_edge(int row, int col) {
 	Index dummy = { -1, -1 };
 	std::array<Index, 4> neighbor = { dummy, dummy, dummy, dummy };
@@ -89,14 +223,11 @@ void Phenotype::add_outgoing_to_active_edge(int row, int col, GRAPH_EDGE_DIR dir
 	}
 }
 
-void Phenotype::build_segment_from_pixel(int row, int col) {
+void Phenotype::build_segment_from_pixel(int row, int col, int segment_id) {
 	active_edge.push_back({ row, col });
 	is_part_of_segment[row][col] = true;
 	Segment current_segment;
 	
-	static int segment_id = 0;
-	segment_id++;
-
 	// As long as a pixel was added to the segment
 	while (active_edge.size() != 0) {
 		new_active_edge.clear();
@@ -127,12 +258,14 @@ void Phenotype::build_segment_from_pixel(int row, int col) {
 
 void Phenotype::build_segments() {
 	std::vector<Segment> segments;
+	int segment_id = 0;
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
 			
 			//Found a pixel that is not a part of a segment
 			if (!is_part_of_segment[row][col]) {
-				build_segment_from_pixel(row, col);
+				segment_id++;
+				build_segment_from_pixel(row, col, segment_id);
 			}
 
 		}
@@ -166,8 +299,8 @@ Phenotype::Phenotype(const Genotype& genotype): Phenotype() {
 	build_segments();
 }
 
-double Phenotype::calculate_overall_deviation() {
-	double overall_deviation = 0;
+void Phenotype::calculate_overall_deviation() {
+	overall_deviation = 0.0;
 
 	//For each segment
 	for (std::vector<Segment>::iterator current_segment = segment.begin();
@@ -188,37 +321,43 @@ double Phenotype::calculate_overall_deviation() {
 		overall_deviation += current_deviation;
 
 	}
-
-	return overall_deviation;
 }
 
-double Phenotype::calculate_edge_value() {
-	double edge_value = 0.0;
+void Phenotype::calculate_edge_value() {
+	edge_value = 0.0;
 
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
-			std::array<Index, 4> neighbor = {};
-
-			image.get_neighbors(row, col, neighbor);
 			Index current_pixel = { row, col };
+			std::array<Index, 4> neighbor = {};
+			std::cout << belongs_to_segment[row][col] << "\t";
+			image.get_neighbors(current_pixel.row, current_pixel.col, neighbor);
 			int current_pixel_id = belongs_to_segment[current_pixel.row][current_pixel.col];
+			int current_neighbor_id;
 
 			for (int i = 0; i < 4; i++) {
 				Index current_neighbor = neighbor[i];
 				if (current_neighbor.is_none()) { continue; }
 				
-				int current_neighbor_id = belongs_to_segment[current_neighbor.row][current_neighbor.col];
+				current_neighbor_id = belongs_to_segment[current_neighbor.row][current_neighbor.col];
 
 				if (current_neighbor_id != current_pixel_id) {
 					edge_value += image.distance_between(current_pixel, current_neighbor);
 				}
 			}
 		}
+		std::cout << std::endl;
 	}
-
-	return edge_value;
 }
 
+void Phenotype::print_segments() {
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			std::cout << belongs_to_segment[row][col] << '\t';
+		}
+		std::cout << std::endl;
+	}
+}
 /********************************************************************************/
 
 
@@ -461,5 +600,12 @@ std::ostream& operator<<(std::ostream& os, Genotype genotype) {
 		os << std::endl;
 	}
 	return os;
+}
+
+void Genotype::add_random_root_nodes() {
+	for (int i = 0; i < 4; i++) {
+		Index new_root = { rand() % IMAGE_HEIGHT, rand() % IMAGE_WIDTH };
+		edge[new_root.row][new_root.col] = NONE;
+	}
 }
 /********************************************************************************/ 

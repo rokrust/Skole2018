@@ -66,7 +66,7 @@ private:
 	const Genotype* genotype;
 
 	std::vector<Segment> segment;
-	double edge_value, overall_deviation;
+	double edge_value, overall_deviation, crowding_distance;
 
 public:
 	//Constructors
@@ -86,15 +86,18 @@ public:
 
 	void calculate_overall_deviation();
 	void calculate_edge_value();
+	
 	double get_overall_deviation() { return overall_deviation; }
 	double get_edge_value() { return edge_value; }
+	double get_crowding_distance() { return crowding_distance; }
+	void set_crowding_distance(double crowding_distance) { this->crowding_distance = crowding_distance; }
 
 	Phenotype& operator=(const Phenotype& rhs);
 };
 
 class Population {
 private:
-	int archive_size, tournament_size;
+	int tournament_size;
 	double mutation_rate, crossover_rate;
 	
 	std::vector<Genotype> population;
@@ -103,14 +106,29 @@ private:
 
 public:
 	Population() {}
-	Population(int population_size, int archive_size, int tournament_size, 
+	Population(int population_size, int tournament_size, 
 			   double mutation_rate, double crossover_rate, 
 			   int n_concurrent_threads = 4);
 
 	void next_generation();
 	Phenotype* tournament_selection();
+	Phenotype* pareto_ranked_tournament_selection();
+	
+	//MOEA sorting
 	void non_dominated_sort();
-	void crowding_distance();
+	
+	//Crowding distance calculations
+	void calculate_crowding_distances();
+	void calculate_crowding_distance_edge_contribution(const std::vector<Phenotype*> front, const std::vector<int>& sorted_by_object_function);
+	void calculate_crowding_distance_deviation_contribution(const std::vector<Phenotype*> front, const std::vector<int>& sorted_by_object_function);
+
+	//Crowding distance sorting
+	void sort_pareto_fronts();
+	void sort_front_by_crowding_distance(std::vector<Phenotype*>& front);
+	void sort_front_by_edge_value(const std::vector<Phenotype*>& front, std::vector<int>& sorted_by_edge_value);
+	void sort_front_by_overall_deviation(const std::vector<Phenotype*>& front, std::vector<int>& sorted_by_overall_deviation);
+	
 	void create_phenotypes();
 	Genotype get_genotype(int i) { return population[i]; }
+
 };

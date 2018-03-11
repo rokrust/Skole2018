@@ -8,11 +8,9 @@ void print_index(Index index) {
 }
 
 int main() {
-	Population population(10, 4, 4, 0.2, 0.8);
+	Population population(100, 4, 0.2, 0.8);
 	//system("PAUSE");
-	population.create_phenotypes();
-	//system("PAUSE");
-	population.non_dominated_sort();
+
 	system("PAUSE");
 
 	return 0;

@@ -50,7 +50,11 @@ Population::Population(int population_size, int archive_size, int tournament_siz
 }
 
 void Population::crowding_distance() {
-	for (int front = 0; front < population_phenotypes.size(); front++) {
+	for (int front = 0; front < pareto_fronts.size(); front++) {
+		std::vector<Phenotype*> current_front = pareto_fronts[front];
+
+		for (int individual = 0; individual < pareto_fronts[front].size(); individual++) {
+		}
 	}
 
 }
@@ -95,10 +99,12 @@ void Population::next_generation() {
 }
 
 void Population::non_dominated_sort() {
-	std::vector<std::vector<int>> fronts(1);
+	std::vector<std::vector<int>> fronts;
 	std::vector<std::vector<int>> dominates(population.size());
-	//const int size = population.size();
 	int* dominated_by = new int[population.size()] ();
+
+	std::vector<Phenotype*> next_front_phenotype;
+	std::vector<int> next_front_index;
 
 	//Find out who dominates whom
 	for (int i = 0; i < population.size(); i++) {
@@ -117,65 +123,76 @@ void Population::non_dominated_sort() {
 		}
 		
 		if (dominated_by[i] == 0) {
-			fronts[0].push_back(i);
+			next_front_phenotype.push_back(&population_phenotypes[i]);
+			next_front_index.push_back(i);
 		}
 	}
-	
+
+	pareto_fronts.push_back(next_front_phenotype);
+	fronts.push_back(next_front_index);
+
 	//Push phenotype pointers to the pareto fronts
-	std::vector<Phenotype*> next_front(1);
-	for (int front_counter = 0; next_front.size() != 0; front_counter++) {
-		next_front.clear();
+	for (int front_counter = 0; next_front_index.size() != 0; front_counter++) {
+		next_front_index.clear();
+		next_front_phenotype.clear();
 
 		for (int i = 0; i < fronts[front_counter].size(); i++) {
-			for (int j = 0; j < dominates[i].size(); j++) {
-				int current_dominated = dominates[i][j];
-				
-				if (--dominated_by[current_dominated] == 0) {
-					next_front.push_back(&population_phenotypes[current_dominated]);
+			int current_dominating = fronts[front_counter][i];
+
+			for (int j = 0; j < dominates[current_dominating].size(); j++) {
+				int current_dominated = dominates[current_dominating][j];
+				dominated_by[current_dominated]--;
+
+				if (dominated_by[current_dominated] == 0) {
+					next_front_phenotype.push_back(&population_phenotypes[current_dominated]);
+					next_front_index.push_back(current_dominated);
 					std::cout << current_dominated << '\t';
 				}
 			}
 		}
 
-		pareto_fronts.push_back(next_front);
+		fronts.push_back(next_front_index);
+		pareto_fronts.push_back(next_front_phenotype);
 		std::cout << std::endl;
 	}
+	pareto_fronts.pop_back();
+	delete dominated_by;
 }
 /********************************************************************************/
 
 /*********************************** Phenotype **********************************/
-Phenotype::Phenotype(const Phenotype& phenotype) {
+Phenotype::Phenotype(const Phenotype& phenotype)
+	: Phenotype(){
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
 			this->is_part_of_segment[row][col] = phenotype.is_part_of_segment[row][col];
 			this->belongs_to_segment[row][col] = phenotype.belongs_to_segment[row][col];
-			this->genotype = phenotype.genotype;
-			this->segment = phenotype.segment;
-			this->edge_value = phenotype.edge_value;
-			this->overall_deviation = phenotype.overall_deviation;
 		}
 	}
+	this->overall_deviation = phenotype.overall_deviation;
+	this->edge_value = phenotype.edge_value;
+	this->segment = phenotype.segment;
 }
 
 Phenotype& Phenotype::operator=(const Phenotype& rhs) {
-
+	
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
 			this->is_part_of_segment[row][col] = rhs.is_part_of_segment[row][col];
 			this->belongs_to_segment[row][col] = rhs.belongs_to_segment[row][col];
-			this->genotype = rhs.genotype;
-			this->segment = rhs.segment;
-			this->edge_value = rhs.edge_value;
-			this->overall_deviation = rhs.overall_deviation;
 		}
 	}
+
+	this->overall_deviation = rhs.overall_deviation;
+	this->edge_value = rhs.edge_value;
+	this->segment = rhs.segment;
 
 	return *this;
 }
 
 bool Phenotype::dominates(const Phenotype& p2) {
-	return (this->edge_value >= p2.edge_value && this->overall_deviation > p2.overall_deviation)
-		|| (this->edge_value > p2.edge_value && this->overall_deviation >= p2.overall_deviation);
+	return (this->edge_value <= p2.edge_value && this->overall_deviation < p2.overall_deviation)
+		|| (this->edge_value < p2.edge_value && this->overall_deviation <= p2.overall_deviation);
 }
 
 void Phenotype::add_ingoing_to_active_edge(int row, int col) {
@@ -319,8 +336,8 @@ void Phenotype::calculate_overall_deviation() {
 		}
 
 		overall_deviation += current_deviation;
-
 	}
+	std::cout << ", " << overall_deviation << std::endl;
 }
 
 void Phenotype::calculate_edge_value() {
@@ -330,7 +347,7 @@ void Phenotype::calculate_edge_value() {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
 			Index current_pixel = { row, col };
 			std::array<Index, 4> neighbor = {};
-			std::cout << belongs_to_segment[row][col] << "\t";
+			
 			image.get_neighbors(current_pixel.row, current_pixel.col, neighbor);
 			int current_pixel_id = belongs_to_segment[current_pixel.row][current_pixel.col];
 			int current_neighbor_id;
@@ -342,12 +359,12 @@ void Phenotype::calculate_edge_value() {
 				current_neighbor_id = belongs_to_segment[current_neighbor.row][current_neighbor.col];
 
 				if (current_neighbor_id != current_pixel_id) {
-					edge_value += image.distance_between(current_pixel, current_neighbor);
+					edge_value -= image.distance_between(current_pixel, current_neighbor);
 				}
 			}
 		}
-		std::cout << std::endl;
 	}
+	std::cout << edge_value;
 }
 
 void Phenotype::print_segments() {
@@ -454,25 +471,11 @@ MST::MST() {
 }
 
 MST::MST(const MST &original): MST() {
-	for (int row = 0; row < IMAGE_HEIGHT; row++) {
-		for (int col = 0; col < IMAGE_WIDTH; col++) {
-			this->in_tree[row][col] = original.in_tree[row][col];
-		}
-	}
-
 	this->mst_set = original.mst_set;
-	this->priority_queue = original.priority_queue;
 }
 
 MST& MST::operator=(const MST &rhs) {
-	for (int row = 0; row < IMAGE_HEIGHT; row++) {
-		for (int col = 0; col < IMAGE_WIDTH; col++) {
-			this->in_tree[row][col] = rhs.in_tree[row][col];
-		}
-	}
-
 	this->mst_set = rhs.mst_set;
-	this->priority_queue = rhs.priority_queue;
 
 	return *this;
 }

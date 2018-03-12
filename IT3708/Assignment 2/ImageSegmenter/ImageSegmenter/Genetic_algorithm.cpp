@@ -66,12 +66,6 @@ void Population::calculate_crowding_distances() {
 		sort_front_by_edge_value(current_front, sorted_by_edge_value);
 		sort_front_by_overall_deviation(current_front, sorted_by_overall_deviation);
 
-		//Difference between individuals at the edges
-		double edge_value_range = population_phenotypes[sorted_by_edge_value.back()].get_edge_value() -
-			population_phenotypes[sorted_by_edge_value.front()].get_edge_value();
-		double overall_deviation_range = population_phenotypes[sorted_by_overall_deviation.back()].get_overall_deviation() -
-			population_phenotypes[sorted_by_overall_deviation.front()].get_overall_deviation();
-
 		//Calculate crowding distance for each individual
 		calculate_crowding_distance_edge_contribution(sorted_by_edge_value);
 		calculate_crowding_distance_deviation_contribution(sorted_by_overall_deviation);
@@ -277,15 +271,9 @@ void Population::create_phenotypes() {
 	population_phenotypes.clear();
 
 	for (int i = 0; i < population.size(); i++) {
-		std::cout << "Push back\n";
-		std::cout << population.size();
-		std::cout << population[i];
 		population_phenotypes.push_back(Phenotype(population[i]));
-		std::cout << "Index\n";
 		population_phenotypes[i].index = i;
-		std::cout << "Edge\n";
 		population_phenotypes[i].calculate_edge_value();
-		std::cout << "Deviation\n";
 		population_phenotypes[i].calculate_overall_deviation();
 	}
 }
@@ -299,13 +287,30 @@ void Population::next_generation() {
 	sort_pareto_fronts();
 
 	//Selection
-	//create_children();
+	create_children();
 
 	//Parent/child generation sorting
 	create_phenotypes();
 	non_dominated_sort();
 	calculate_crowding_distances();
 	sort_pareto_fronts();
+
+	std::vector<Genotype> child_generation;
+	int front_count = 0;
+	
+	std::cout << population_phenotypes[pareto_fronts[0].back()].get_edge_value() << ", " << population_phenotypes[pareto_fronts[0].back()].get_overall_deviation();
+	std::cout << std::endl;
+
+	while (child_generation.size() < population_size) {
+		child_generation.push_back(population[pareto_fronts[front_count].back()]);
+		pareto_fronts[front_count].pop_back();
+		
+		if (pareto_fronts[front_count].size() == 0) {
+			front_count++;
+		}
+	}
+
+	population = child_generation;
 }
 
 void Population::create_children() {
@@ -347,12 +352,13 @@ void Population::non_dominated_sort() {
 	for (int i = 0; i < population.size(); i++) {
 		Phenotype* current_phenotype = &population_phenotypes[i];
 
-		for (int j = i+1; j < population.size(); j++) {
+		for (int j = i + 1; j < population.size(); j++) {
 			
 			if (current_phenotype->dominates(population_phenotypes[j])) {
 				dominates[i].push_back(j);
 				dominated_by[j]++;
 			}
+
 			else if (population_phenotypes[j].dominates(*current_phenotype)){
 				dominates[j].push_back(i);
 				dominated_by[i]++;
@@ -370,9 +376,11 @@ void Population::non_dominated_sort() {
 	for (int front_counter = 0; next_front.size() != 0; front_counter++) {
 		next_front.clear();
 
+		//Iterate through the individuals at the front
 		for (int i = 0; i < pareto_fronts[front_counter].size(); i++) {
 			std::vector<int> current_front = pareto_fronts[front_counter];
 			int current_dominating = current_front[i];
+
 
 			for (int j = 0; j < dominates[current_dominating].size(); j++) {
 				int current_dominated = dominates[current_dominating][j];
@@ -380,24 +388,14 @@ void Population::non_dominated_sort() {
 
 				if (dominated_by[current_dominated] == 0) {
 					next_front.push_back(current_dominated);
-					std::cout << current_dominated << '\t';
 				}
 			}
 		}
 
 		pareto_fronts.push_back(next_front);
-		std::cout << std::endl;
 	}
 	pareto_fronts.pop_back();
 	delete dominated_by;
-
-	std::cout << std::endl;
-	for (int i = 0; i < pareto_fronts.size(); i++) {
-		for (int j = 0; j < pareto_fronts[i].size(); j++) {
-			std::cout << population_phenotypes[pareto_fronts[i][j]].get_edge_value() << '\t';
-		}
-		std::cout << std::endl;
-	}
 }
 
 /********************************************************************************/
@@ -587,7 +585,6 @@ void Phenotype::calculate_overall_deviation() {
 
 		overall_deviation += current_deviation;
 	}
-	std::cout << ", " << overall_deviation << std::endl;
 }
 
 void Phenotype::calculate_edge_value() {
@@ -614,7 +611,6 @@ void Phenotype::calculate_edge_value() {
 			}
 		}
 	}
-	std::cout << edge_value;
 }
 
 void Phenotype::print_segments() {
@@ -897,6 +893,7 @@ void Genotype::add_random_root_nodes() {
 }
 
 void Population::test() {
-	population[0].crossover_two_point(population[1], population[2], population[3]);
+	std::cout << population_phenotypes[pareto_fronts[0].back()].get_edge_value() << ", " << population_phenotypes[pareto_fronts[0].back()].get_overall_deviation();
+	std::cout << std::endl;
 }
 /********************************************************************************/ 

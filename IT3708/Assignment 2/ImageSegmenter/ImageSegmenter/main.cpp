@@ -10,20 +10,10 @@ void print_index(Index index) {
 int main() {
 	Population population(20, 4, 0.2, 0.8);
 	//system("PAUSE");
-	while(1){
-		std::cout << "Crossover\n";
-		population.test();
-		population.test2();
-		std::cout << "Create phenotypes\n";
-		//population.create_phenotypes();
-
-		//Parent generation sorting
-		std::cout << "Non dominated sort\n";
-		//population.non_dominated_sort();
-
-		std::cout << "Calculate crowding distance\n";
-		//population.calculate_crowding_distances();
-		//population.sort_pareto_fronts();
+	int kjell_tore = 0;
+	while(kjell_tore++ < 100){
+		std::cout << kjell_tore << std::endl;
+		population.next_generation();
 	}
 	system("PAUSE");
 

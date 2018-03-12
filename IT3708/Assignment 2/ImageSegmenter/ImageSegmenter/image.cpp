@@ -181,3 +181,7 @@ void Image::read(char* image_dir){
 		}
 	}
 }
+
+void Image::write(char* image_dir) {
+	
+}

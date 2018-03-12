@@ -1,8 +1,8 @@
 #pragma once
 #include <vector>
 
-#define IMAGE_HEIGHT 10//321
-#define IMAGE_WIDTH 10//481
+#define IMAGE_HEIGHT 321
+#define IMAGE_WIDTH 481
 #define N_PIXELS IMAGE_HEIGHT*IMAGE_WIDTH
 #define IMAGE_DIR "Test image.jpg"
 
@@ -42,6 +42,7 @@ public:
 	Image(char* image_dir);
 	~Image();
 	void read(char* image_dir);
+	void write(char* image_dir);
 
 	void calculate_color_distances() const;
 	double distance_between(const Index& p1, const Index& p2) const;

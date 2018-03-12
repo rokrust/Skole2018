@@ -8,7 +8,8 @@ void print_index(Index index) {
 }
 
 int main() {
-	Population population(20, 4, 0.2, 0.8);
+	Image solution(image);
+	Population population(50, 4, 0.2, 0.8);
 	//system("PAUSE");
 	int kjell_tore = 0;
 	while(kjell_tore++ < 100){
@@ -19,6 +20,6 @@ int main() {
 	population.output_solution();
 
 	system("PAUSE");
-
+	
 	return 0;
 }

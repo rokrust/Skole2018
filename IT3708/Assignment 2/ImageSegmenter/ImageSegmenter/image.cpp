@@ -86,7 +86,7 @@ Image::Image() {
 Image::Image(const Image& image_in): Image() {
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
-			this->pixels[row*IMAGE_HEIGHT + col] = image_in.pixels[row*IMAGE_WIDTH + col];
+			this->pixels[row][col] = image_in.pixels[row][col];
 		}
 	}
 }
@@ -184,7 +184,7 @@ void Image::read(char* image_dir){
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
 			cv::Vec3b rgb = mat.at<cv::Vec3b>(row, col);
-			pixels[row][col] = { rgb[0], rgb[1], rgb[2] };;
+			pixels[row][col] = { rgb[2], rgb[1], rgb[0] };;
 
 		}
 	}
@@ -197,8 +197,7 @@ void Image::write(char* image_dir) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
 			Pixel p = this->pixels[row][col];
 			cv::Vec3b color(p.b, p.g, p.r);
-			//cv::Vec3b color(0, 0, 255);
-			output_image.at<cv::Vec3b>(cv::Point(row, col)) = color;
+			output_image.at<cv::Vec3b>(cv::Point(col, row)) = color;
 
 		}
 	}

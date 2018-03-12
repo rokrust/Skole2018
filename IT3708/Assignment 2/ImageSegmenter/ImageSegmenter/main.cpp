@@ -15,6 +15,9 @@ int main() {
 		std::cout << kjell_tore << std::endl;
 		population.next_generation();
 	}
+	
+	population.output_solution();
+
 	system("PAUSE");
 
 	return 0;

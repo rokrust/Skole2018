@@ -43,10 +43,10 @@ Population::Population(int population_size, int tournament_size,
 		using namespace std::chrono;
 		std::this_thread::sleep_for(milliseconds(5));
 	}
-
+	/*
 	for (int i = 0; i < population.size(); i++) {
 		population[i].add_random_root_nodes();
-	}
+	}*/
 }
 
 void Population::sort_pareto_fronts() {
@@ -398,6 +398,17 @@ void Population::non_dominated_sort() {
 	delete dominated_by;
 }
 
+void Population::output_solution() {
+	create_phenotypes();
+	non_dominated_sort();
+	calculate_crowding_distances();
+	sort_pareto_fronts();
+
+	Image solution_image(image);
+	population_phenotypes[pareto_fronts[0].back()].create_solution_image(solution_image);
+	solution_image.write("solution.jpg");
+}
+
 /********************************************************************************/
 
 /*********************************** Phenotype **********************************/
@@ -582,7 +593,9 @@ void Phenotype::calculate_overall_deviation() {
 			Pixel current_pixel = image[current_index->row][current_index->col];
 			current_deviation += current_pixel.color_distance(current_centroid);
 		}
-
+		if (segment.size() > 25) {
+			edge_value += 9999999999999;
+		}
 		overall_deviation += current_deviation;
 	}
 }
@@ -611,6 +624,10 @@ void Phenotype::calculate_edge_value() {
 			}
 		}
 	}
+	if (segment.size() > 25) {
+		edge_value += 9999999999999;
+	}
+
 }
 
 void Phenotype::print_segments() {
@@ -619,6 +636,31 @@ void Phenotype::print_segments() {
 			std::cout << belongs_to_segment[row][col] << '\t';
 		}
 		std::cout << std::endl;
+	}
+}
+
+void Phenotype::create_solution_image(Image& solution_image) {
+	std::cout << segment.size() << std::endl;
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			//solution_image[row][col] = { 255, 255, 255 };
+			std::array<Index, 4> neighbor;
+			image.get_neighbors(row, col, neighbor);
+
+			//See if neighbors belong to a different segment
+			int current_segment = belongs_to_segment[row][col];
+			for (int i = 0; i < 4; i++) {
+				Index current_neighbor;
+				int neighbor_segment = belongs_to_segment[row][col];
+
+				if (current_neighbor.is_none()) { continue; }
+
+				//Pixel is at the edge. Change the color of it
+				if (current_segment != neighbor_segment) {
+					solution_image[row][col] = { 0, 0, 255 };
+				}
+			}
+		}
 	}
 }
 /********************************************************************************/

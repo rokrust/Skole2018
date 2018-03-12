@@ -92,6 +92,8 @@ public:
 	double get_crowding_distance() { return crowding_distance; }
 	void set_crowding_distance(double crowding_distance) { this->crowding_distance = crowding_distance; }
 
+	void create_solution_image(Image& solution_image);
+
 	Phenotype& operator=(const Phenotype& rhs);
 };
 
@@ -132,6 +134,8 @@ public:
 	void create_children();
 	void create_phenotypes();
 	Genotype get_genotype(int i) { return population[i]; }
+
+	void output_solution();
 
 	void test();
 	void test2() { std::cout << population[0]; }

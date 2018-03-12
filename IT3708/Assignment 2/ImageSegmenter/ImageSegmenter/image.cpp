@@ -83,6 +83,14 @@ Image::Image() {
 	}
 }
 
+Image::Image(const Image& image_in): Image() {
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			this->pixels[row*IMAGE_HEIGHT + col] = image_in.pixels[row*IMAGE_WIDTH + col];
+		}
+	}
+}
+
 Image::Image(char* image_dir): Image() {
 	this->read(image_dir);
 	calculate_color_distances();
@@ -183,5 +191,18 @@ void Image::read(char* image_dir){
 }
 
 void Image::write(char* image_dir) {
-	
+	cv::Mat output_image(IMAGE_HEIGHT, IMAGE_WIDTH, CV_8UC3);
+
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			Pixel p = this->pixels[row][col];
+			cv::Vec3b color(p.b, p.g, p.r);
+			//cv::Vec3b color(0, 0, 255);
+			output_image.at<cv::Vec3b>(cv::Point(row, col)) = color;
+
+		}
+	}
+
+	cv::imwrite("Solution.jpg", output_image);
+
 }

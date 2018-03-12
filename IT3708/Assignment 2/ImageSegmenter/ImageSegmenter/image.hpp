@@ -4,7 +4,7 @@
 #define IMAGE_HEIGHT 321
 #define IMAGE_WIDTH 481
 #define N_PIXELS IMAGE_HEIGHT*IMAGE_WIDTH
-#define IMAGE_DIR "Test image.jpg"
+#define IMAGE_DIR "../../Test Images/160068/Test image.jpg"
 
 struct Pixel; struct Index; class Image; class Segment;
 
@@ -40,6 +40,8 @@ public:
 
 	Image();
 	Image(char* image_dir);
+	Image::Image(const Image& image_in);
+
 	~Image();
 	void read(char* image_dir);
 	void write(char* image_dir);

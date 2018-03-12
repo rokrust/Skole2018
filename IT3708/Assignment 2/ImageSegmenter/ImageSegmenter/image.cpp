@@ -95,6 +95,8 @@ Image::~Image() {
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		delete[] pixels[row];
 	}
+
+	delete pixels;
 }
 
 Index Image::next_index(int row, int col, GRAPH_EDGE_DIR dir) const {

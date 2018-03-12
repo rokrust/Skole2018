@@ -6,16 +6,17 @@
 #include <chrono>
 #include <thread>
 /********************************** Population **********************************/
-Population::Population(int population_size, int tournament_size, 
-					   double mutation_rate, double crossover_rate, 
-					   int n_concurrent_threads) :
-	tournament_size(tournament_size), mutation_rate(mutation_rate), crossover_rate(crossover_rate) {
+Population::Population(int population_size, int tournament_size,
+	double mutation_rate, double crossover_rate,
+	int n_concurrent_threads) :
+	population_size(population_size), tournament_size(tournament_size), mutation_rate(mutation_rate), crossover_rate(crossover_rate) {
 	population.reserve(population_size);
 
 	std::vector<std::thread> thread_vec;
 	for (int i = 0; i < n_concurrent_threads; i++) {
 		population.push_back(Genotype());
 		Index root_node = { rand() % IMAGE_HEIGHT, rand() % IMAGE_WIDTH };
+		//MST().genotype_generator(population[i], root_node);
 		thread_vec.push_back(std::thread(&MST::genotype_generator, MST(), std::ref(population[i]), root_node));
 	}
 
@@ -49,165 +50,189 @@ Population::Population(int population_size, int tournament_size,
 }
 
 void Population::sort_pareto_fronts() {
-	for (std::vector<std::vector<Phenotype*>>::iterator current_front = pareto_fronts.begin();
-		current_front != pareto_fronts.end(); current_front++) {
-		sort_front_by_crowding_distance(*current_front);
+	for (int current_front = 0; current_front < pareto_fronts.size(); current_front++) {
+		sort_front_by_crowding_distance(current_front);
 	}
+
 }
 
-void Population::calculate_crowding_distances() {
-	for (std::vector<std::vector<Phenotype*>>::iterator current_front = pareto_fronts.begin();
-		current_front != pareto_fronts.end(); current_front++) {
 
+
+void Population::calculate_crowding_distances() {
+	for (int current_front  = 0; current_front < pareto_fronts.size(); current_front++) { //35
 		std::vector<int> sorted_by_edge_value;
 		std::vector<int> sorted_by_overall_deviation;
 
-		sort_front_by_edge_value(*current_front, sorted_by_edge_value);
-		sort_front_by_overall_deviation(*current_front, sorted_by_overall_deviation);
+		sort_front_by_edge_value(current_front, sorted_by_edge_value);
+		sort_front_by_overall_deviation(current_front, sorted_by_overall_deviation);
 
 		//Difference between individuals at the edges
-		double edge_value_range = (*current_front)[sorted_by_edge_value.back()]->get_edge_value() -
-			(*current_front)[sorted_by_edge_value.front()]->get_edge_value();
-		double overall_deviation_range = (*current_front)[sorted_by_overall_deviation.back()]->get_overall_deviation() -
-			(*current_front)[sorted_by_overall_deviation.front()]->get_overall_deviation();
+		double edge_value_range = population_phenotypes[sorted_by_edge_value.back()].get_edge_value() -
+			population_phenotypes[sorted_by_edge_value.front()].get_edge_value();
+		double overall_deviation_range = population_phenotypes[sorted_by_overall_deviation.back()].get_overall_deviation() -
+			population_phenotypes[sorted_by_overall_deviation.front()].get_overall_deviation();
 
 		//Calculate crowding distance for each individual
-		calculate_crowding_distance_edge_contribution(*current_front, sorted_by_edge_value);
-		calculate_crowding_distance_deviation_contribution(*current_front, sorted_by_overall_deviation);
+		calculate_crowding_distance_edge_contribution(sorted_by_edge_value);
+		calculate_crowding_distance_deviation_contribution(sorted_by_overall_deviation);
 	}
 }
 
-void Population::calculate_crowding_distance_edge_contribution(const std::vector<Phenotype*> front, const std::vector<int>& sorted_by_object_function) {
-	double edge_value_range = front[sorted_by_object_function.back()]->get_edge_value() -
-		front[sorted_by_object_function.front()]->get_edge_value();
+void Population::calculate_crowding_distance_edge_contribution(const std::vector<int>& sorted_front) {
+	double edge_value_range = population_phenotypes[sorted_front.back()].get_edge_value() -
+		population_phenotypes[sorted_front.front()].get_edge_value();
 
 	//Calculate crowding distance for each individual
-	for (int i = 1; i < front.size() - 1; i++) {
+	for (int i = 1; i < sorted_front.size() - 1; i++) {
 
 		//Edge calculation
-		int current_individual = sorted_by_object_function[i];
-		int left_individual = sorted_by_object_function[i - 1];
-		int right_individual = sorted_by_object_function[i + 1];
-		Phenotype* current_individual_ptr = front[current_individual];
-
-		double edge_value = current_individual_ptr->get_crowding_distance();
-		edge_value += (front[right_individual]->get_edge_value() -
-			front[left_individual]->get_edge_value()) /
+		int left = sorted_front[i - 1];
+		int right = sorted_front[i + 1];
+		int current = sorted_front[i];
+		double edge_value = population_phenotypes[current].get_crowding_distance();
+		edge_value += (population_phenotypes[right].get_edge_value() -
+			population_phenotypes[left].get_edge_value()) /
 			edge_value_range;
 
-		current_individual_ptr->set_crowding_distance(edge_value);
+		population_phenotypes[current].set_crowding_distance(edge_value);
 	}
 	
 	double INF = std::numeric_limits<double>::infinity();
-	front[sorted_by_object_function.front()]->set_crowding_distance(INF);
-	front[sorted_by_object_function.back()]->set_crowding_distance(INF);
+	population_phenotypes[sorted_front.front()].set_crowding_distance(INF);
+	population_phenotypes[sorted_front.back()].set_crowding_distance(INF);
 }
 
-void Population::calculate_crowding_distance_deviation_contribution(const std::vector<Phenotype*> front, const std::vector<int>& sorted_by_object_function) {
-	double overall_deviation_range = front[sorted_by_object_function.back()]->get_overall_deviation() -
-		front[sorted_by_object_function.front()]->get_overall_deviation();
+void Population::calculate_crowding_distance_deviation_contribution(const std::vector<int>& sorted_front) {
+	double overall_deviation_range = population_phenotypes[sorted_front.back()].get_overall_deviation() -
+		population_phenotypes[sorted_front.front()].get_overall_deviation();
 
-	//Calculate crowding distance for each individual
-	for (int i = 1; i < front.size() - 1; i++) {
-
-		//Edge calculation
-		int current_individual = sorted_by_object_function[i];
-		int left_individual = sorted_by_object_function[i - 1];
-		int right_individual = sorted_by_object_function[i + 1];
-		Phenotype* current_individual_ptr = front[current_individual];
-
-		double overall_deviation = current_individual_ptr->get_crowding_distance();
-		overall_deviation += (front[right_individual]->get_overall_deviation() -
-			front[left_individual]->get_overall_deviation()) /
+	//Deviation calculation
+	for (int i = 1; i < sorted_front.size() - 1; i++) {
+		int left = sorted_front[i - 1];
+		int right = sorted_front[i + 1];
+		int current = sorted_front[i];
+		double overall_deviation = population_phenotypes[current].get_crowding_distance();
+		overall_deviation += (population_phenotypes[right].get_overall_deviation() -
+			population_phenotypes[left].get_overall_deviation()) /
 			overall_deviation_range;
 
-		current_individual_ptr->set_crowding_distance(overall_deviation);
+		population_phenotypes[current].set_crowding_distance(overall_deviation);
 	}
 
 	double INF = std::numeric_limits<double>::infinity();
-	front[sorted_by_object_function.front()]->set_crowding_distance(INF);
-	front[sorted_by_object_function.back()]->set_crowding_distance(INF);
+	population_phenotypes[sorted_front.front()].set_crowding_distance(INF);
+	population_phenotypes[sorted_front.back()].set_crowding_distance(INF);
 }
 
-void Population::sort_front_by_crowding_distance(std::vector<Phenotype*>& front) {
-	std::vector<Phenotype*> sorted_front;
-	sorted_front.push_back(front[0]);
+void Population::sort_front_by_crowding_distance(int front) {
+	std::vector<int> sorted_front;
+	std::vector<int> current_front = pareto_fronts[front];
+	sorted_front.push_back(pareto_fronts[front][0]);
 
-	for (int i = 0; i < front.size() - 1; i++) {
+	for (int i = 0; i < current_front.size() - 1; i++) {
 		
-		std::cout << front[i]->get_crowding_distance() << ", " << front[i + 1]->get_crowding_distance() << std::endl;
-		Phenotype* insert = front[i + 1];
-		if (sorted_front[i]->get_crowding_distance() > insert->get_crowding_distance()) {
+		int current_unsorted = current_front[i + 1];
+		int current_sorted = sorted_front[i];
+
+		if (population_phenotypes[current_sorted].get_crowding_distance() > population_phenotypes[current_unsorted].get_crowding_distance()) {
 
 			//Iterate backwards to find the insertion point
 			for (int j = i; j >= 0; j--) {
-				if (sorted_front[j]->get_crowding_distance() <= insert->get_crowding_distance()) {
-					sorted_front.insert(sorted_front.begin() + j + 1, insert);
+				if (population_phenotypes[sorted_front[j]].get_crowding_distance() <= population_phenotypes[current_unsorted].get_crowding_distance()) {
+					sorted_front.insert(sorted_front.begin() + j + 1, current_unsorted);
 					break;
 				}
 				else if (j == 0) {
-					sorted_front.insert(sorted_front.begin(), insert);
+					sorted_front.insert(sorted_front.begin(), current_unsorted);
 				}
 			}
 		}
 		else {
-			sorted_front.push_back(insert);
+			sorted_front.push_back(current_unsorted);
 		}
 	}
 
-	front = sorted_front;
+	pareto_fronts[front] = sorted_front;
 }
 
-void Population::sort_front_by_edge_value(const std::vector<Phenotype*>& front, std::vector<int>& sorted) {
-	sorted.push_back(0);
-	for (int i = 0; i < front.size()-1; i++) {
-		
-		if (front[sorted[i]]->get_edge_value() > front[i + 1]->get_edge_value()) {
-			
-			//Iterate backwards to find the insertion point
-			for (int j = i; j >= 0; j--) {
-				if (front[sorted[j]]->get_edge_value() <= front[i + 1]->get_edge_value()) {
-					sorted.insert(sorted.begin() + j + 1, i + 1);
-					break;
-				}
-				else if(j == 0) {
-					sorted.insert(sorted.begin(), i + 1);
-				}
-			}
-		}
-		else {
-			sorted.push_back(i + 1);
-		}
-	}
+void Population::sort_front_by_edge_value(int front, std::vector<int>& sorted) {
+	std::vector<int> current_front = pareto_fronts[front];
+	sorted.push_back(current_front[0]);
 
-}
+	for (int i = 0; i < current_front.size() - 1; i++) {
+		int current_unsorted = current_front[i + 1];
+		int current_sorted = sorted[i];
 
-void Population::sort_front_by_overall_deviation(const std::vector<Phenotype*>& front, std::vector<int>& sorted) {
-	sorted.push_back(0);
-	for (int i = 0; i < front.size() - 1; i++) {
-		
-		if (front[sorted[i]]->get_overall_deviation() > front[i + 1]->get_overall_deviation()) {
+		if (population_phenotypes[current_sorted].get_edge_value() > population_phenotypes[current_unsorted].get_edge_value()) {
 
 			//Iterate backwards to find the insertion point
 			for (int j = i; j >= 0; j--) {
-				if (front[sorted[j]]->get_overall_deviation() <= front[i + 1]->get_overall_deviation()) {
-					sorted.insert(sorted.begin() + j + 1, i + 1);
+				if (population_phenotypes[sorted[j]].get_edge_value() <= population_phenotypes[current_unsorted].get_edge_value()) {
+					sorted.insert(sorted.begin() + j + 1, current_unsorted);
 					break;
 				}
 				else if (j == 0) {
-					sorted.insert(sorted.begin(), i + 1);
+					sorted.insert(sorted.begin(), current_unsorted);
 				}
 			}
 		}
 		else {
-			sorted.push_back(i + 1);
+			sorted.push_back(current_unsorted);
 		}
 	}
 }
 
-Phenotype* Population::tournament_selection() {
-	int i = rand() % population.size();
-	Phenotype* winner = &population_phenotypes[i];
+void Population::sort_front_by_overall_deviation(int front, std::vector<int>& sorted) {
+	std::vector<int> current_front = pareto_fronts[front];
+	sorted.push_back(current_front[0]);
+
+	for (int i = 0; i < current_front.size() - 1; i++) {
+		int current_unsorted = current_front[i + 1];
+		int current_sorted = sorted[i];
+
+		if (population_phenotypes[current_sorted].get_overall_deviation() > population_phenotypes[current_unsorted].get_overall_deviation()) {
+
+			//Iterate backwards to find the insertion point
+			for (int j = i; j >= 0; j--) {
+				if (population_phenotypes[sorted[j]].get_overall_deviation() <= population_phenotypes[current_unsorted].get_overall_deviation()) {
+					sorted.insert(sorted.begin() + j + 1, current_unsorted);
+					break;
+				}
+				else if (j == 0) {
+					sorted.insert(sorted.begin(), current_unsorted);
+				}
+			}
+		}
+		else {
+			sorted.push_back(current_unsorted);
+		}
+	}
+}
+
+
+
+
+int Population::tournament_selection() {
+	int winner = rand() % population.size();
+	
+	for (int k = 0; k < tournament_size - 1; k++) {
+		int competitor = rand() % population.size();
+		if (competitor < winner) {
+			winner = competitor;
+		}
+	}
+
+	for (int i = 0; i < pareto_fronts.size(); i++) {
+		if (winner >= pareto_fronts[i].size()) {
+			winner -= pareto_fronts[i].size();
+			continue;
+		}
+		else {
+			return pareto_fronts[i][winner];
+		}
+	}
+	/*int i = rand() % population.size();
+	//Phenotype* winner = &population_phenotypes[i];
 
 	for (int k = 0; k < tournament_size-1; k++) {
 		int i = rand() % population.size();
@@ -223,10 +248,10 @@ Phenotype* Population::tournament_selection() {
 		
 	}
 
-	return winner;
+	return winner->get_genotype();*/
 }
 
-Phenotype* Population::pareto_ranked_tournament_selection() {
+int Population::pareto_ranked_tournament_selection() {
 	int winner_rank = rand() % pareto_fronts.size();
 	int winner_index = rand() % pareto_fronts[winner_rank].size();
 
@@ -236,6 +261,7 @@ Phenotype* Population::pareto_ranked_tournament_selection() {
 
 		if (rank > winner_rank) {
 			winner_rank = rank;
+			winner_index = index;
 		}
 		else if (rank == winner_rank) {
 			if (index > winner_index) {
@@ -243,14 +269,23 @@ Phenotype* Population::pareto_ranked_tournament_selection() {
 			}
 		}
 	}
-
+	
 	return pareto_fronts[winner_rank][winner_index];
 }
 
 void Population::create_phenotypes() {
+	population_phenotypes.clear();
+
 	for (int i = 0; i < population.size(); i++) {
+		std::cout << "Push back\n";
+		std::cout << population.size();
+		std::cout << population[i];
 		population_phenotypes.push_back(Phenotype(population[i]));
+		std::cout << "Index\n";
+		population_phenotypes[i].index = i;
+		std::cout << "Edge\n";
 		population_phenotypes[i].calculate_edge_value();
+		std::cout << "Deviation\n";
 		population_phenotypes[i].calculate_overall_deviation();
 	}
 }
@@ -258,32 +293,55 @@ void Population::create_phenotypes() {
 void Population::next_generation() {
 	create_phenotypes();
 
-	//Solution sorting
+	//Parent generation sorting
 	non_dominated_sort();
 	calculate_crowding_distances();
 	sort_pareto_fronts();
 
 	//Selection
+	//create_children();
 
-	//Genetic operators
-	double crossover = (rand() % 100) / 100.0;
-	double mutation = (rand() % 100) / 100.0;
-	if (crossover <= crossover_rate) {
-	
-	}
-	if (mutation <= mutation_rate) {
-	
+	//Parent/child generation sorting
+	create_phenotypes();
+	non_dominated_sort();
+	calculate_crowding_distances();
+	sort_pareto_fronts();
+}
+
+void Population::create_children() {
+	for (int i = 0; i < population_size; i++) {
+		int p1_index = pareto_ranked_tournament_selection();
+		int p2_index = pareto_ranked_tournament_selection();
+
+		//Genetic operators
+		double crossover = (rand() % 100) / 100.0;
+		double mutation = (rand() % 100) / 100.0;
+
+		if (crossover <= crossover_rate) {
+			Genotype c1, c2;
+			population[p1_index].crossover_two_point(population[p2_index], c1, c2);
+			population.push_back(c1);
+			population.push_back(c2);
+			continue;
+		}
+		else if (mutation <= mutation_rate) {
+			population[p1_index].mutate();
+			population[p2_index].mutate();
+		}
+
+		population.push_back(population[p1_index]);
+		population.push_back(population[p1_index]);
 	}
 
 }
 
 void Population::non_dominated_sort() {
-	std::vector<std::vector<int>> fronts;
+	pareto_fronts.clear();
+
 	std::vector<std::vector<int>> dominates(population.size());
 	int* dominated_by = new int[population.size()] ();
 
-	std::vector<Phenotype*> next_front_phenotype;
-	std::vector<int> next_front_index;
+	std::vector<int> next_front;
 
 	//Find out who dominates whom
 	for (int i = 0; i < population.size(); i++) {
@@ -302,40 +360,44 @@ void Population::non_dominated_sort() {
 		}
 		
 		if (dominated_by[i] == 0) {
-			next_front_phenotype.push_back(&population_phenotypes[i]);
-			next_front_index.push_back(i);
+			next_front.push_back(i);
 		}
 	}
 
-	pareto_fronts.push_back(next_front_phenotype);
-	fronts.push_back(next_front_index);
+	pareto_fronts.push_back(next_front);
 
-	//Push phenotype pointers to the pareto fronts
-	for (int front_counter = 0; next_front_index.size() != 0; front_counter++) {
-		next_front_index.clear();
-		next_front_phenotype.clear();
+	//Push next front to pareto fronts
+	for (int front_counter = 0; next_front.size() != 0; front_counter++) {
+		next_front.clear();
 
-		for (int i = 0; i < fronts[front_counter].size(); i++) {
-			int current_dominating = fronts[front_counter][i];
+		for (int i = 0; i < pareto_fronts[front_counter].size(); i++) {
+			std::vector<int> current_front = pareto_fronts[front_counter];
+			int current_dominating = current_front[i];
 
 			for (int j = 0; j < dominates[current_dominating].size(); j++) {
 				int current_dominated = dominates[current_dominating][j];
 				dominated_by[current_dominated]--;
 
 				if (dominated_by[current_dominated] == 0) {
-					next_front_phenotype.push_back(&population_phenotypes[current_dominated]);
-					next_front_index.push_back(current_dominated);
+					next_front.push_back(current_dominated);
 					std::cout << current_dominated << '\t';
 				}
 			}
 		}
 
-		fronts.push_back(next_front_index);
-		pareto_fronts.push_back(next_front_phenotype);
+		pareto_fronts.push_back(next_front);
 		std::cout << std::endl;
 	}
 	pareto_fronts.pop_back();
 	delete dominated_by;
+
+	std::cout << std::endl;
+	for (int i = 0; i < pareto_fronts.size(); i++) {
+		for (int j = 0; j < pareto_fronts[i].size(); j++) {
+			std::cout << population_phenotypes[pareto_fronts[i][j]].get_edge_value() << '\t';
+		}
+		std::cout << std::endl;
+	}
 }
 
 /********************************************************************************/
@@ -353,6 +415,8 @@ Phenotype::Phenotype(const Phenotype& phenotype)
 	this->edge_value = phenotype.edge_value;
 	this->crowding_distance = phenotype.crowding_distance;
 	this->segment = phenotype.segment;
+	this->index = phenotype.index;
+
 }
 
 Phenotype& Phenotype::operator=(const Phenotype& rhs) {
@@ -368,6 +432,7 @@ Phenotype& Phenotype::operator=(const Phenotype& rhs) {
 	this->edge_value = rhs.edge_value;
 	this->crowding_distance = rhs.crowding_distance;
 	this->segment = rhs.segment;
+	this->index = rhs.index;
 
 	return *this;
 }
@@ -377,7 +442,7 @@ bool Phenotype::dominates(const Phenotype& p2) {
 		|| (this->edge_value < p2.edge_value && this->overall_deviation <= p2.overall_deviation);
 }
 
-void Phenotype::add_ingoing_to_active_edge(int row, int col) {
+void Phenotype::add_ingoing_to_active_edge(int row, int col, const Genotype& genotype) {
 	Index dummy = { -1, -1 };
 	std::array<Index, 4> neighbor = { dummy, dummy, dummy, dummy };
 
@@ -389,7 +454,7 @@ void Phenotype::add_ingoing_to_active_edge(int row, int col) {
 			continue;
 		}
 		
-		GRAPH_EDGE_DIR dir = (*genotype)[current_neighbor.row][current_neighbor.col]; //garbage
+		GRAPH_EDGE_DIR dir = genotype[current_neighbor.row][current_neighbor.col];
 		Index next_neighbor = image.next_index(current_neighbor.row, current_neighbor.col, dir);
 		if (next_neighbor.is_none()) {
 			continue;
@@ -422,7 +487,7 @@ void Phenotype::add_outgoing_to_active_edge(int row, int col, GRAPH_EDGE_DIR dir
 	}
 }
 
-void Phenotype::build_segment_from_pixel(int row, int col, int segment_id) {
+void Phenotype::build_segment_from_pixel(int row, int col, int segment_id, const Genotype& genotype) {
 	active_edge.push_back({ row, col });
 	is_part_of_segment[row][col] = true;
 	Segment current_segment;
@@ -438,12 +503,11 @@ void Phenotype::build_segment_from_pixel(int row, int col, int segment_id) {
 			active_edge.pop_back();
 			belongs_to_segment[current_pixel.row][current_pixel.col] = segment_id;
 			
-			add_ingoing_to_active_edge(current_pixel.row, current_pixel.col);	//Kalles mange ganger på samme pixel?
-
 			//Add all neighbors pointing towards the segment
+			add_ingoing_to_active_edge(current_pixel.row, current_pixel.col, genotype);	//Kalles mange ganger på samme pixel?
 
 			//Add all neighbors being pointed to by the segment
-			GRAPH_EDGE_DIR dir = (*genotype)[current_pixel.row][current_pixel.col];
+			GRAPH_EDGE_DIR dir = genotype[current_pixel.row][current_pixel.col];
 			add_outgoing_to_active_edge(current_pixel.row, current_pixel.col, dir);
 
 		}
@@ -455,7 +519,7 @@ void Phenotype::build_segment_from_pixel(int row, int col, int segment_id) {
 	segment.push_back(current_segment);
 }
 
-void Phenotype::build_segments() {
+void Phenotype::build_segments(const Genotype& genotype) {
 	std::vector<Segment> segments;
 	int segment_id = 0;
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
@@ -464,7 +528,7 @@ void Phenotype::build_segments() {
 			//Found a pixel that is not a part of a segment
 			if (!is_part_of_segment[row][col]) {
 				segment_id++;
-				build_segment_from_pixel(row, col, segment_id);
+				build_segment_from_pixel(row, col, segment_id, genotype);
 			}
 
 		}
@@ -490,6 +554,7 @@ Phenotype::Phenotype() {
 }
 
 Phenotype::~Phenotype() {
+
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		delete[] is_part_of_segment[row];
 		delete[] belongs_to_segment[row];
@@ -497,9 +562,8 @@ Phenotype::~Phenotype() {
 
 }
 
-Phenotype::Phenotype(const Genotype& genotype): Phenotype() {
-	this->genotype = &genotype;
-	build_segments();
+Phenotype::Phenotype(Genotype& genotype): Phenotype() {
+	build_segments(genotype);
 }
 
 void Phenotype::calculate_overall_deviation() {
@@ -731,28 +795,34 @@ void Genotype::crossover_one_point(const Genotype& p2, Genotype& c1, Genotype& c
 }
 
 void Genotype::crossover_two_point(const Genotype& p2, Genotype& c1, Genotype& c2) {
+	const GRAPH_EDGE_DIR* p1_ptr = (*this)[0];
 	const GRAPH_EDGE_DIR* p2_ptr = p2[0];
 	GRAPH_EDGE_DIR* c1_ptr = c1[0];
 	GRAPH_EDGE_DIR* c2_ptr = c2[0];
-
-	int crossover_point2 = rand() % N_PIXELS;
+	
+	int crossover_point2 = 0;
+	while (crossover_point2 == 0) {
+		crossover_point2 = rand() % N_PIXELS;
+	}
 	int crossover_point1 = rand() % crossover_point2;
 
+	
 	for (int i = 0; i < crossover_point1; i++) {
-		c1_ptr[i] = (*edge)[i];
+		c1_ptr[i] = p1_ptr[i];
 		c2_ptr[i] = p2_ptr[i];
 	}
 
 	for (int i = crossover_point1; i < crossover_point2; i++) {
 		c1_ptr[i] = p2_ptr[i];
-		c2_ptr[i] = (*edge)[i];
+		c2_ptr[i] = p1_ptr[i];
 	}
 
 	for (int i = crossover_point2; i < N_PIXELS; i++) {
-		c1_ptr[i] = (*edge)[i];
+		c1_ptr[i] = p1_ptr[i];
 		c2_ptr[i] = p2_ptr[i];
 	}
 	
+	std::cout << c1[0][0];
 }
 
 Genotype& Genotype::operator=(const Genotype &rhs) {
@@ -796,5 +866,9 @@ void Genotype::add_random_root_nodes() {
 		Index new_root = { rand() % IMAGE_HEIGHT, rand() % IMAGE_WIDTH };
 		edge[new_root.row][new_root.col] = NONE;
 	}
+}
+
+void Population::test() {
+	population[0].crossover_two_point(population[1], population[2], population[3]);
 }
 /********************************************************************************/ 

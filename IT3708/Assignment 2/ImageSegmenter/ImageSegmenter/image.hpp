@@ -1,6 +1,5 @@
 #pragma once
 #include <vector>
-#include <iterator>
 
 #define IMAGE_HEIGHT 10//321
 #define IMAGE_WIDTH 10//481

@@ -63,22 +63,22 @@ private:
 	std::vector<Index> active_edge; //growing edge
 	std::vector<Index> new_active_edge;
 
-	const Genotype* genotype;
-
 	std::vector<Segment> segment;
 	double edge_value, overall_deviation, crowding_distance;
 
 public:
+	int index;
+
 	//Constructors
 	Phenotype();
-	Phenotype(const Genotype& genotype);
+	Phenotype(Genotype& genotype);
 	Phenotype(const Phenotype& genotype);
 	~Phenotype();
 
 	//Constructor helper functions
-	void build_segments();
-	void build_segment_from_pixel(int row, int col, int segment_id);
-	void add_ingoing_to_active_edge(int row, int col);
+	void build_segments(const Genotype& genotype);
+	void build_segment_from_pixel(int row, int col, int segment_id, const Genotype& genotype);
+	void add_ingoing_to_active_edge(int row, int col, const Genotype& genotype);
 	void add_outgoing_to_active_edge(int row, int col, GRAPH_EDGE_DIR dir);
 	
 	void print_segments();
@@ -97,12 +97,13 @@ public:
 
 class Population {
 private:
-	int tournament_size;
+	int tournament_size, population_size;
 	double mutation_rate, crossover_rate;
 	
 	std::vector<Genotype> population;
 	std::vector<Phenotype> population_phenotypes;
-	std::vector<std::vector<Phenotype*>> pareto_fronts; //The individuals are grouped in a set of pareto fronts
+	std::vector<std::vector<int>> pareto_fronts; //The individuals are grouped in a set of pareto fronts
+
 
 public:
 	Population() {}
@@ -111,24 +112,28 @@ public:
 			   int n_concurrent_threads = 4);
 
 	void next_generation();
-	Phenotype* tournament_selection();
-	Phenotype* pareto_ranked_tournament_selection();
+	int tournament_selection();
+	int pareto_ranked_tournament_selection();
 	
 	//MOEA sorting
 	void non_dominated_sort();
 	
 	//Crowding distance calculations
 	void calculate_crowding_distances();
-	void calculate_crowding_distance_edge_contribution(const std::vector<Phenotype*> front, const std::vector<int>& sorted_by_object_function);
-	void calculate_crowding_distance_deviation_contribution(const std::vector<Phenotype*> front, const std::vector<int>& sorted_by_object_function);
+	void calculate_crowding_distance_edge_contribution(const std::vector<int>& sorted_by_object_function);
+	void calculate_crowding_distance_deviation_contribution(const std::vector<int>& sorted_by_object_function);
 
 	//Crowding distance sorting
 	void sort_pareto_fronts();
-	void sort_front_by_crowding_distance(std::vector<Phenotype*>& front);
-	void sort_front_by_edge_value(const std::vector<Phenotype*>& front, std::vector<int>& sorted_by_edge_value);
-	void sort_front_by_overall_deviation(const std::vector<Phenotype*>& front, std::vector<int>& sorted_by_overall_deviation);
+	void sort_front_by_crowding_distance(int front);
+	void sort_front_by_edge_value(int front, std::vector<int>& sorted_by_edge_value);
+	void sort_front_by_overall_deviation(int front, std::vector<int>& sorted_by_overall_deviation);
 	
+	void create_children();
 	void create_phenotypes();
 	Genotype get_genotype(int i) { return population[i]; }
+
+	void test();
+	void test2() { std::cout << population[0]; }
 
 };

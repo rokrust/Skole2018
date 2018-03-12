@@ -795,34 +795,62 @@ void Genotype::crossover_one_point(const Genotype& p2, Genotype& c1, Genotype& c
 }
 
 void Genotype::crossover_two_point(const Genotype& p2, Genotype& c1, Genotype& c2) {
-	const GRAPH_EDGE_DIR* p1_ptr = (*this)[0];
-	const GRAPH_EDGE_DIR* p2_ptr = p2[0];
-	GRAPH_EDGE_DIR* c1_ptr = c1[0];
-	GRAPH_EDGE_DIR* c2_ptr = c2[0];
-	
-	int crossover_point2 = 0;
-	while (crossover_point2 == 0) {
-		crossover_point2 = rand() % N_PIXELS;
-	}
-	int crossover_point1 = rand() % crossover_point2;
 
+	int crossover_point2_row = rand() % IMAGE_HEIGHT;
+	int crossover_point2_col = rand() % IMAGE_WIDTH;
 	
-	for (int i = 0; i < crossover_point1; i++) {
-		c1_ptr[i] = p1_ptr[i];
-		c2_ptr[i] = p2_ptr[i];
+	int crossover_point1_row = rand() % IMAGE_HEIGHT;
+	int crossover_point1_col = rand() % IMAGE_WIDTH;
+
+	if (crossover_point2_row < crossover_point1_row) {
+		int temp = crossover_point2_row;
+		crossover_point2_row = crossover_point1_row;
+		crossover_point1_row = temp;
 	}
 
-	for (int i = crossover_point1; i < crossover_point2; i++) {
-		c1_ptr[i] = p2_ptr[i];
-		c2_ptr[i] = p1_ptr[i];
+	for (int row = 0; row < crossover_point1_row; row++) {
+		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			c1[row][col] = (*this)[row][col];
+			c2[row][col] = p2[row][col];
+		}
 	}
 
-	for (int i = crossover_point2; i < N_PIXELS; i++) {
-		c1_ptr[i] = p1_ptr[i];
-		c2_ptr[i] = p2_ptr[i];
+	for (int row = crossover_point1_row + 1; row < crossover_point2_row; row++) {
+		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			c2[row][col] = (*this)[row][col];
+			c1[row][col] = p2[row][col];
+		}
+	}
+
+	for (int row = crossover_point2_row + 1; row < IMAGE_HEIGHT; row++) {
+		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			c1[row][col] = (*this)[row][col];
+			c2[row][col] = p2[row][col];
+		}
+	}
+
+	//Row of the first crossover point
+	for (int col = 0; col < crossover_point1_col; col++) {
+		c1[crossover_point1_row][col] = (*this)[crossover_point1_row][col];
+		c2[crossover_point1_row][col] = p2[crossover_point1_row][col];
+
+	}
+	for (int col = crossover_point1_col; col < IMAGE_WIDTH; col++) {
+		c2[crossover_point1_row][col] = (*this)[crossover_point1_row][col];
+		c1[crossover_point1_row][col] = p2[crossover_point1_row][col];
+	}
+
+	//Row of the second crossover point
+	for (int col = 0; col < crossover_point2_col; col++) {
+		c2[crossover_point2_row][col] = (*this)[crossover_point2_row][col];
+		c1[crossover_point2_row][col] = p2[crossover_point2_row][col];
+
+	}
+	for (int col = crossover_point2_col; col < IMAGE_WIDTH; col++) {
+		c1[crossover_point2_row][col] = (*this)[crossover_point2_row][col];
+		c2[crossover_point2_row][col] = p2[crossover_point2_row][col];
 	}
 	
-	std::cout << c1[0][0];
 }
 
 Genotype& Genotype::operator=(const Genotype &rhs) {

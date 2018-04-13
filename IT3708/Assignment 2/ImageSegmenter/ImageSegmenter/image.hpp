@@ -1,10 +1,12 @@
 #pragma once
 #include <vector>
 
-#define IMAGE_HEIGHT 321
-#define IMAGE_WIDTH 481
+static int MAX_SEGMENTS = 300;
+#define IMAGE_HEIGHT 1450//321
+#define IMAGE_WIDTH 269//481
 #define N_PIXELS IMAGE_HEIGHT*IMAGE_WIDTH
-#define IMAGE_DIR "../../Test Images/160068/Test image.jpg"
+#define IMAGE_DIR "hvetemel.jpg"
+//#define IMAGE_DIR "../../Test Images/160068/Test image.jpg"
 
 struct Pixel; struct Index; class Image; class Segment;
 
@@ -14,7 +16,7 @@ enum GRAPH_EDGE_DIR { LEFT = 0, RIGHT, UP, DOWN, NONE };
 struct Pixel {
 	unsigned char r, g, b;
 	double color_distance(Pixel p); //okay
-	double Pixel::color_distance(Pixel p) const;
+	double color_distance(Pixel p) const;
 
 	//Operators
 	Pixel operator-(Pixel p); //okay
@@ -40,7 +42,7 @@ public:
 
 	Image();
 	Image(char* image_dir);
-	Image::Image(const Image& image_in);
+	Image(const Image& image_in);
 
 	~Image();
 	void read(char* image_dir);
@@ -62,16 +64,23 @@ static const Image image(IMAGE_DIR);
 class Segment {
 private:
 	std::vector<Index> pixel;
+	bool infinite_length;
 
 public:
-	Segment() {}
+	Segment() { infinite_length = false; }
 
-	size_t get_length() const { return pixel.size(); }
+	size_t get_length() const { 
+		if (infinite_length) {
+			return std::numeric_limits<int>::infinity();
+		}
+		return pixel.size(); 
+	}
 	
 	//Vector functions
 	std::vector<Index>::iterator begin() { return pixel.begin(); }	//okay
 	std::vector<Index>::iterator end() { return pixel.end(); }	//okay
 	void add_pixel(int row, int col) { this->pixel.push_back({ row, col }); }
+	void set_infinite_length() { infinite_length = true; }
 
 	//Math
 	Pixel calculate_centroid(); //okay

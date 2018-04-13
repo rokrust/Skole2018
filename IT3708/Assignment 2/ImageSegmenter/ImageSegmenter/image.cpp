@@ -202,6 +202,6 @@ void Image::write(char* image_dir) {
 		}
 	}
 
-	cv::imwrite("Solution.jpg", output_image);
+	cv::imwrite(image_dir, output_image);
 
 }

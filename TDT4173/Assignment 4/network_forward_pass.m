@@ -1,13 +1,9 @@
 function output = network_forward_pass(network, input, current_layer)
-    n_inputs = size(input, 1);
-    n_nodes = size(network{current_layer}, 1);
+    [n_inputs, n_nodes] = size(network{current_layer});
     n_layers = size(network, 2);
-    out = zeros(n_nodes, 1);
     
-    %Calculate output of each node
-    for i=1:n_inputs
-        out = out + network{current_layer} .* input(i);
-    end
+    %Calculate the output of every single node
+    out = input * network{current_layer};
     out = logsig(out);
     
     %Hidden layers propagate
@@ -19,6 +15,7 @@ function output = network_forward_pass(network, input, current_layer)
     %Final layer
     else
         output = {out};
+        %output = {input * network{current_layer}};
         
     end
         

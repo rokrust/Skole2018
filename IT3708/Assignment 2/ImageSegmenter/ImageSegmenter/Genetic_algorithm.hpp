@@ -87,19 +87,21 @@ public:
 	void calculate_overall_deviation();
 	void calculate_edge_value();
 	
+	int n_segments() { return segment.size(); }
+
 	double get_overall_deviation() { return overall_deviation; }
 	double get_edge_value() { return edge_value; }
 	double get_crowding_distance() { return crowding_distance; }
 	void set_crowding_distance(double crowding_distance) { this->crowding_distance = crowding_distance; }
 
-	void create_solution_image(Image& solution_image);
-
+	void create_solution_image(Image& solution_image, Pixel color);
+	void join_segments(int max_segments);
 	Phenotype& operator=(const Phenotype& rhs);
 };
 
 class Population {
 private:
-	int tournament_size, population_size;
+	int tournament_size, population_size, max_segments;
 	double mutation_rate, crossover_rate;
 	
 	std::vector<Genotype> population;
@@ -110,8 +112,10 @@ private:
 public:
 	Population() {}
 	Population(int population_size, int tournament_size, 
-			   double mutation_rate, double crossover_rate, 
-			   int n_concurrent_threads = 4);
+			   double mutation_rate, double crossover_rate, int max_segments);
+
+	Population(const Population& population);
+	Population& operator=(const Population& original);
 
 	void next_generation();
 	int tournament_selection();
@@ -135,8 +139,16 @@ public:
 	void create_phenotypes();
 	Genotype get_genotype(int i) { return population[i]; }
 
+	void population_creation(Phenotype& phenotype, int i);
 	void output_solution();
 
+	void set_population_size(int population_size) { this->population_size = population_size; }
+	void set_max_segments(int max_segments) { this->max_segments = max_segments; }
+	int get_max_segments() { return max_segments; }
+
+
+	void weighted_sum_ga(double edge_weight, double deviation_weight);
+	void join_segments(int max);
 	void test();
 	void test2() { std::cout << population[0]; }
 

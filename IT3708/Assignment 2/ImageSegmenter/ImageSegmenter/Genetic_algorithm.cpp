@@ -5,21 +5,32 @@
 #include <array>
 #include <chrono>
 #include <thread>
+#include <algorithm>
+
+using namespace std;
+using namespace std::chrono;
+
 /********************************** Population **********************************/
 Population::Population(int population_size, int tournament_size,
-	double mutation_rate, double crossover_rate,
-	int n_concurrent_threads) :
-	population_size(population_size), tournament_size(tournament_size), mutation_rate(mutation_rate), crossover_rate(crossover_rate) {
+	double mutation_rate, double crossover_rate, int max_segments) :
+	population_size(population_size), tournament_size(tournament_size), 
+	mutation_rate(mutation_rate), crossover_rate(crossover_rate), max_segments(max_segments) {
 	population.reserve(population_size);
 
 	std::vector<std::thread> thread_vec;
-	for (int i = 0; i < n_concurrent_threads; i++) {
+	for (int i = 0; i < population_size; i++) {
 		population.push_back(Genotype());
+		cout << "Thread " << i << " created, boii\n";
 		Index root_node = { rand() % IMAGE_HEIGHT, rand() % IMAGE_WIDTH };
-		//MST().genotype_generator(population[i], root_node);
 		thread_vec.push_back(std::thread(&MST::genotype_generator, MST(), std::ref(population[i]), root_node));
 	}
 
+	for (int i = 0; i < population_size; i++) {
+		std::cout << "Thread " << i << " joined\n";
+		thread_vec[i].join();
+	}
+
+	/*
 	int remaining_individuals = population_size;
 	while (remaining_individuals) {
 		for (int i = 0; i < n_concurrent_threads; i++) {
@@ -47,6 +58,34 @@ Population::Population(int population_size, int tournament_size,
 	for (int i = 0; i < population.size(); i++) {
 		population[i].add_random_root_nodes();
 	}
+	*/
+	cout << "DONNEEE!\n";
+
+}
+
+Population::Population(const Population& original) {
+	this->tournament_size = original.tournament_size;
+	this->population_size = original.population_size;
+	this->mutation_rate = original.mutation_rate;
+	this->crossover_rate = original.crossover_rate;
+	this->population = original.population;
+	this->max_segments = original.max_segments;
+	this->population_phenotypes = original.population_phenotypes;
+	this->pareto_fronts = original.pareto_fronts;
+
+}
+
+Population& Population::operator=(const Population& original) {
+	this->tournament_size = original.tournament_size;
+	this->population_size = original.population_size;
+	this->mutation_rate = original.mutation_rate;
+	this->crossover_rate = original.crossover_rate;
+	this->population = original.population;
+	this->population_phenotypes = original.population_phenotypes;
+	this->pareto_fronts = original.pareto_fronts;
+	this->max_segments = original.max_segments;
+
+	return *this;
 }
 
 void Population::sort_pareto_fronts() {
@@ -56,7 +95,33 @@ void Population::sort_pareto_fronts() {
 
 }
 
+struct Pair {
+	double fitness;
+	int index;
 
+	bool operator<(const Pair& rhs) const { return fitness < rhs.fitness; }
+};
+
+void Population::weighted_sum_ga(double edge_weight, double deviation_weight) {
+	for (int i = 0; i < population.size(); i++) {
+		population_phenotypes.push_back(Phenotype(population[i]));
+		population_phenotypes[i].index = i;
+		population_phenotypes[i].calculate_edge_value();
+		population_phenotypes[i].calculate_overall_deviation();
+
+	}
+
+	std::vector<Pair> storage;
+	for (int i = 0; i < population_phenotypes.size(); i++) {
+		double fitness = edge_weight*population_phenotypes[i].get_edge_value() + deviation_weight*population_phenotypes[i].get_overall_deviation();
+		int index = i;
+		Pair p = { fitness, i };
+		storage.push_back(p);
+	}
+
+	std::sort(storage.begin(), storage.end());
+	cout << storage[0].fitness;
+}
 
 void Population::calculate_crowding_distances() {
 	for (int current_front  = 0; current_front < pareto_fronts.size(); current_front++) { //35
@@ -203,9 +268,6 @@ void Population::sort_front_by_overall_deviation(int front, std::vector<int>& so
 	}
 }
 
-
-
-
 int Population::tournament_selection() {
 	int winner = rand() % population.size();
 	
@@ -267,14 +329,38 @@ int Population::pareto_ranked_tournament_selection() {
 	return pareto_fronts[winner_rank][winner_index];
 }
 
+void Population::population_creation(Phenotype& phenotype, int i) {
+	population_phenotypes[i].build_segments(population[i]);
+	population_phenotypes[i].index = i;
+	population_phenotypes[i].calculate_edge_value();
+	population_phenotypes[i].calculate_overall_deviation();
+}
+
 void Population::create_phenotypes() {
 	population_phenotypes.clear();
 
+	cout << "Creating POPULESHAN\n";
+	std::vector<std::thread> thread_vec;
 	for (int i = 0; i < population.size(); i++) {
 		population_phenotypes.push_back(Phenotype(population[i]));
 		population_phenotypes[i].index = i;
+		
+/*		if (population_phenotypes[i].n_segments() > max_segments && population_phenotypes.size() > 50 && population.size() > 50) {
+			population.erase(population.begin() + i);
+			population_phenotypes.erase(population_phenotypes.begin() + i);
+			i--;
+		}*/
+	}
+	cout << "Population size: " << population.size() << endl;
+
+	for (int i = 0; i < population.size(); i++) {
 		population_phenotypes[i].calculate_edge_value();
-		population_phenotypes[i].calculate_overall_deviation();
+		thread_vec.push_back(std::thread(&Phenotype::calculate_overall_deviation, std::ref(population_phenotypes[i])));
+	}
+
+	for (int i = 0; i < population.size(); i++) {
+		//cout << "Thread " << i << " joined. CONGRATULEeASHAN\n";
+		thread_vec[i].join();
 	}
 }
 
@@ -404,9 +490,36 @@ void Population::output_solution() {
 	calculate_crowding_distances();
 	sort_pareto_fronts();
 
+	Image contour_image(image);
 	Image solution_image(image);
-	population_phenotypes[pareto_fronts[0].back()].create_solution_image(solution_image);
+	for (int row = 0; row < IMAGE_HEIGHT; row++) {
+		for (int col = 0; col < IMAGE_WIDTH; col++) {
+			contour_image[row][col] = { 255, 255, 255 };
+		}
+	}
+	population_phenotypes[pareto_fronts[0].back()].create_solution_image(contour_image, { 0, 0, 0 });
+	population_phenotypes[pareto_fronts[0].back()].create_solution_image(solution_image, { 0, 255, 0 });
+
+	/*char* image_dir[5] = { "contour0.jpg", "contour1.jpg" , "contour2.jpg" ,"contour3.jpg" ,"contour4.jpg" };
+	for (int i = 0; i < pareto_fronts[0].size(); i++) {
+		population_phenotypes[pareto_fronts[0][i]].create_solution_image(contour_image, { 0, 0, 0 });
+		population_phenotypes[pareto_fronts[0][i]].create_solution_image(solution_image, { 0, 255, 0 });
+		population_phenotypes[pareto_fronts[0].back()].create_solution_image(contour_image, { 0, 0, 0 });
+		population_phenotypes[pareto_fronts[0].back()].create_solution_image(solution_image, { 0, 255, 0 });
+		contour_image.write(image_dir[i]);
+	}*/
+	
+	contour_image.write("contour.jpg");
 	solution_image.write("solution.jpg");
+}
+
+void Population::join_segments(int max) {
+	create_phenotypes();
+	non_dominated_sort();
+	calculate_crowding_distances();
+	sort_pareto_fronts();
+
+	population_phenotypes[pareto_fronts[0].back()].join_segments(max);
 }
 
 /********************************************************************************/
@@ -416,10 +529,13 @@ Phenotype::Phenotype(const Phenotype& phenotype)
 	: Phenotype(){
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
-			this->is_part_of_segment[row][col] = phenotype.is_part_of_segment[row][col];
 			this->belongs_to_segment[row][col] = phenotype.belongs_to_segment[row][col];
+			this->is_part_of_segment[row][col] = phenotype.is_part_of_segment[row][col];
 		}
 	}
+
+	this->active_edge = phenotype.active_edge;
+	this->new_active_edge = phenotype.active_edge;
 	this->overall_deviation = phenotype.overall_deviation;
 	this->edge_value = phenotype.edge_value;
 	this->crowding_distance = phenotype.crowding_distance;
@@ -428,15 +544,17 @@ Phenotype::Phenotype(const Phenotype& phenotype)
 
 }
 
-Phenotype& Phenotype::operator=(const Phenotype& rhs) {
+Phenotype& Phenotype::operator=(const Phenotype& rhs){
 	
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
-			this->is_part_of_segment[row][col] = rhs.is_part_of_segment[row][col];
 			this->belongs_to_segment[row][col] = rhs.belongs_to_segment[row][col];
+			this->is_part_of_segment[row][col] = rhs.is_part_of_segment[row][col];
 		}
 	}
 
+	this->active_edge = rhs.active_edge;
+	this->new_active_edge = rhs.active_edge;
 	this->overall_deviation = rhs.overall_deviation;
 	this->edge_value = rhs.edge_value;
 	this->crowding_distance = rhs.crowding_distance;
@@ -634,18 +752,11 @@ void Phenotype::print_segments() {
 	}
 }
 
-void Phenotype::create_solution_image(Image& solution_image) {
-	//for (int row = 0; row < IMAGE_HEIGHT; row++) {
-	//	for (int col = 0; col < IMAGE_WIDTH; col++) {
-	//		solution_image[row][col] = { 0, 0, 0 };
-	//	}
-	//}
-
-
+void Phenotype::create_solution_image(Image& solution_image, Pixel color) {
 	std::cout << segment.size() << std::endl;
 	for (int row = 0; row < IMAGE_HEIGHT; row++) {
 		for (int col = 0; col < IMAGE_WIDTH; col++) {
-			//solution_image[row][col] = { 255, 255, 255 };
+			
 			std::array<Index, 4> neighbor;
 			image.get_neighbors(row, col, neighbor);
 
@@ -660,11 +771,55 @@ void Phenotype::create_solution_image(Image& solution_image) {
 
 				//Pixel is at the edge. Change the color of it
 				if (current_segment != neighbor_segment) {
-					solution_image[row][col] = { 255, 255, 255 };
+					solution_image[row][col] = color;
 				}
 			}
 		
 		}
+	}
+}
+
+void Phenotype::join_segments(int max_segments) {
+	int smallest_segment = 0;
+	int segment_size = numeric_limits<double>::infinity();
+	int segment_size_blargh = segment.size();
+	while(segment_size_blargh > max_segments){
+		for (int i = 0; i < segment.size(); i++) {
+			if (segment[i].get_length() < segment_size) {
+				smallest_segment = i;
+				segment_size = segment[i].get_length();
+			}
+		}
+		
+		segment_size = 0;
+		int segment_id = 0;
+
+		//Find largest neighboring segment
+		for (int i = 0; i < segment[smallest_segment].get_length(); i++) {
+			Index current_index = segment[smallest_segment][i];
+			std::array<Index, 4> neighbor;
+			image.get_neighbors(current_index.row, current_index.col, neighbor);
+			int current_segment = belongs_to_segment[current_index.row][current_index.col];
+
+			for (int j = 0; j < 4; j++) {
+				int neighbor_segment = belongs_to_segment[neighbor[j].row][neighbor[j].col];
+				if (current_segment != neighbor_segment && 
+					segment[neighbor_segment - 1].get_length() > segment_size) {
+
+					segment_size = segment[neighbor_segment - 1].get_length();
+					segment_id = neighbor_segment;
+				}
+			}
+		}
+
+		//Join smallest segment to its largest neighbor
+		for (int i = 0; i < segment[smallest_segment].get_length(); i++) {
+			Index ind = segment[smallest_segment][i];
+			belongs_to_segment[ind.row][ind.col] = segment_id;
+			
+		}
+		segment_size_blargh--;
+
 	}
 }
 /********************************************************************************/
@@ -932,7 +1087,7 @@ std::ostream& operator<<(std::ostream& os, Genotype genotype) {
 }
 
 void Genotype::add_random_root_nodes() {
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < 280; i++) {
 		Index new_root = { rand() % IMAGE_HEIGHT, rand() % IMAGE_WIDTH };
 		edge[new_root.row][new_root.col] = NONE;
 	}

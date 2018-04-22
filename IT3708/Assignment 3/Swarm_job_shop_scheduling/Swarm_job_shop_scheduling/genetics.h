@@ -1,0 +1,49 @@
+#pragma once
+
+#define INDIRECT_CHROMOSOME_LENGTH 19
+#define CHROMOSOME_LENGTH 19
+#define N_JOBS 5
+#define N_MACHINES 5
+#include<iostream>
+
+using namespace std;
+
+class Chromosome {
+private:
+
+
+public:
+	Chromosome();
+	Chromosome(char* str);
+
+	virtual void n_point_crossover(const Chromosome &rhs_parent, Chromosome& offspring1, Chromosome& offspring2, const unsigned int const n_crossover_points) =0;
+	virtual void mutate() =0;
+
+	const unsigned int& operator [](unsigned int i) const { return chromosome_string[i]; }
+	unsigned int& operator [](unsigned int i) { return chromosome_string[i]; }
+	const unsigned int& operator [](int i) const { return chromosome_string[i]; }
+	unsigned int& operator [](int i) { return chromosome_string[i]; }
+
+protected:
+	unsigned int* chromosome_string;
+	unsigned int chromosome_length;
+};
+
+class OttoRep : public Chromosome{
+private:
+
+
+public:
+	OttoRep() { chromosome_length = INDIRECT_CHROMOSOME_LENGTH;  chromosome_string = new unsigned int[INDIRECT_CHROMOSOME_LENGTH]; }
+	OttoRep(char* str);
+	~OttoRep() { delete chromosome_string; }
+
+	virtual void n_point_crossover(const Chromosome &rhs_parent, Chromosome& offspring1, Chromosome& offspring2, const unsigned int const n_crossover_points = 1);
+	virtual void mutate();
+	void convert_to_phenotype(unsigned int** phenotype);
+
+
+	bool operator == (const OttoRep &rhs);
+	bool operator == (const OttoRep &rhs) const;
+	friend ostream& operator << (ostream& out, const OttoRep& chromosome);
+};

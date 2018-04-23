@@ -1,9 +1,5 @@
 #pragma once
-
-#define INDIRECT_CHROMOSOME_LENGTH 19
-#define CHROMOSOME_LENGTH 19
-#define N_JOBS 5
-#define N_MACHINES 5
+#include "config.h"
 #include<iostream>
 
 using namespace std;

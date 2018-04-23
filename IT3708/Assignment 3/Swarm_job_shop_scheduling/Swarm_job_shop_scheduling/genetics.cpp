@@ -80,11 +80,23 @@ void OttoRep::mutate() {
 }
 
 void OttoRep::convert_to_phenotype(unsigned int** phenotype) {
+	//For each machine
 	for (int comp = 0; comp < N_MACHINES; comp++) {
 		unsigned int comp_base_i = comp*N_JOBS;
+		
+		//For each job of the machine
 		for (int i = 0; i < N_JOBS; i++) {
 			unsigned int job = chromosome_string[comp_base_i + i];
-			phenotype[comp][i] = 
+
+			//Iterate through all earlier jobs to translate 
+			//relative index to absolute index
+			for (int j = i - 1; j >= 0; j--) {
+				if (chromosome_string[j] <= job) {
+					job++;
+				}
+			}
+
+			phenotype[comp][i] = job;
 		}
 	}
 }

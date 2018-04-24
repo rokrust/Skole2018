@@ -3,6 +3,18 @@
 #include "data.h"
 #include<iostream>
 
+class Phenotype {
+private:
+	int fitness;
+	unsigned int** work_order;
+
+public:
+	Phenotype();
+	void calculate_fitness();
+
+	void add_job(unsigned int i, unsigned int j, unsigned int job) { work_order[i][j] = job; }
+};
+
 
 class Chromosome {
 private:
@@ -36,7 +48,7 @@ public:
 
 	void n_point_crossover(const Chromosome &rhs_parent, Chromosome& offspring1, Chromosome& offspring2, const unsigned int n_crossover_points = 1);
 	void mutate();
-	void convert_to_phenotype(unsigned int** phenotype);
+	void convert_to_phenotype(Phenotype& phenotype);
 
 
 	bool operator == (const OttoRep &rhs);

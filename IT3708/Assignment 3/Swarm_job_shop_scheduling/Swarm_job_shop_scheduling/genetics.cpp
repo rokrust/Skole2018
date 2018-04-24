@@ -1,10 +1,10 @@
 //#include "data.h"
 #include "genetics.h"
+#include <vector>
 
 #include <cstdlib>
 
-//Data data;
-
+//Chromosome
 Chromosome::Chromosome() {
 
 }
@@ -16,6 +16,8 @@ Chromosome::Chromosome(char* str): Chromosome() {
 	}
 }
 
+
+//OTTOREP
 //okay
 OttoRep::OttoRep(char* str): OttoRep(){
 	for (int i = 0; str[i] != '\0'; i++) {
@@ -84,7 +86,7 @@ void OttoRep::mutate() {
 	chromosome_string[i] = new_val;
 }
 
-void OttoRep::convert_to_phenotype(unsigned int** phenotype) {
+void OttoRep::convert_to_phenotype(Phenotype& phenotype) {
 	//For each machine
 	for (int comp = 0; comp < data.N_MACHINES; comp++) {
 		unsigned int comp_base_i = comp*data.N_JOBS;
@@ -101,7 +103,7 @@ void OttoRep::convert_to_phenotype(unsigned int** phenotype) {
 				}
 			}
 
-			phenotype[comp][i] = job;
+			phenotype.add_job(comp, i, job);
 		}
 	}
 }
@@ -134,4 +136,28 @@ std::ostream& operator << (std::ostream& out, const OttoRep& chromosome) {
 	}
 
 	return out;
+}
+
+//Phenotype
+Phenotype::Phenotype() {
+	work_order = new unsigned int*[data.N_MACHINES];
+	for (int machine = 0; machine < data.N_MACHINES; machine++) {
+		work_order[machine] = new unsigned int[data.N_JOBS];
+	}
+}
+
+void Phenotype::calculate_fitness() {
+	std::vector<unsigned int> time_until_next(data.N_MACHINES);
+	std::vector<unsigned int> at_job(data.N_MACHINES);
+
+	unsigned int lowest_execution_time = 9999;
+	fitness = 0;
+
+	for (int machine = 0; machine < data.N_MACHINES; machine++) {
+		unsigned int job_i = at_job[machine];
+		unsigned int current_job = work_order[machine][job_i];
+		time_until_next[machine] = 
+		
+	}
+
 }

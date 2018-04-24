@@ -1,5 +1,10 @@
+//#include "data.h"
 #include "genetics.h"
+
 #include <cstdlib>
+
+//Data data;
+
 Chromosome::Chromosome() {
 
 }
@@ -81,11 +86,11 @@ void OttoRep::mutate() {
 
 void OttoRep::convert_to_phenotype(unsigned int** phenotype) {
 	//For each machine
-	for (int comp = 0; comp < N_MACHINES; comp++) {
-		unsigned int comp_base_i = comp*N_JOBS;
+	for (int comp = 0; comp < data.N_MACHINES; comp++) {
+		unsigned int comp_base_i = comp*data.N_JOBS;
 		
 		//For each job of the machine
-		for (int i = 0; i < N_JOBS; i++) {
+		for (int i = 0; i < data.N_JOBS; i++) {
 			unsigned int job = chromosome_string[comp_base_i + i];
 
 			//Iterate through all earlier jobs to translate 
@@ -121,7 +126,7 @@ bool OttoRep::operator == (const OttoRep &rhs) const {
 	return true;
 }
 
-ostream& operator << (ostream& out, const OttoRep& chromosome) {
+std::ostream& operator << (std::ostream& out, const OttoRep& chromosome) {
 	out << chromosome.chromosome_string[0];
 
 	for (int i = 1; i < INDIRECT_CHROMOSOME_LENGTH; i++) {

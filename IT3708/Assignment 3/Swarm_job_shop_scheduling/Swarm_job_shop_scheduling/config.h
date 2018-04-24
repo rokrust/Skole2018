@@ -1,8 +1,8 @@
 #pragma once
 #define INDIRECT_CHROMOSOME_LENGTH 8
 #define CHROMOSOME_LENGTH 8
-#define N_JOBS 8
-#define N_MACHINES 1
+//#define N_JOBS 8
+//#define N_MACHINES 1
 
 //Artificial bee colony
 #define ABC_POPULATION 100

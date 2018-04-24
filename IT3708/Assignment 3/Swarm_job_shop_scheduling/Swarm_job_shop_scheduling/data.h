@@ -4,6 +4,15 @@ public:
 	unsigned int N_JOBS;
 	unsigned int N_MACHINES;
 
-	Data();
+	unsigned int** execution_time;
+	unsigned int** work_order;
+
+	Data() { ; }
 	Data(char* dir);
-} data;
+	Data(const Data& data);
+
+	~Data();
+	Data operator=(const Data& data);
+};
+
+static Data data;

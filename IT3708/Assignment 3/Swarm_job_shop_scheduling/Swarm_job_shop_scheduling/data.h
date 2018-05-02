@@ -1,5 +1,8 @@
 #pragma once
 class Data {
+private:
+	void _allocate_members();
+
 public:
 	unsigned int N_JOBS;
 	unsigned int N_MACHINES;
@@ -15,4 +18,4 @@ public:
 	Data operator=(const Data& data);
 };
 
-static Data data;
+extern Data data;

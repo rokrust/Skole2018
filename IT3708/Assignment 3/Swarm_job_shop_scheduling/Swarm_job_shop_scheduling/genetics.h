@@ -1,18 +1,24 @@
 #pragma once
 #include "config.h"
 #include "data.h"
-#include<iostream>
+#include <iostream>
+#include <vector>
 
 class Phenotype {
 private:
 	int fitness;
 	unsigned int** work_order;
+	
+	unsigned int _lowest_remaining_execution_time(std::vector<unsigned int> remaining_execution_time);
+	void _deadlock_handler();
 
 public:
 	Phenotype();
+	~Phenotype();
 	void calculate_fitness();
 
-	void add_job(unsigned int i, unsigned int j, unsigned int job) { work_order[i][j] = job; }
+	void add_job(unsigned int machine, unsigned int at_job, unsigned int job) { work_order[machine][at_job] = job; }
+	int get_fitness() { return fitness; }
 };
 
 
@@ -39,7 +45,6 @@ protected:
 
 class OttoRep : public Chromosome{
 private:
-
 
 public:
 	OttoRep() { chromosome_length = INDIRECT_CHROMOSOME_LENGTH;  chromosome_string = new unsigned int[INDIRECT_CHROMOSOME_LENGTH]; }

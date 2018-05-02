@@ -8,8 +8,6 @@ y = linspace(-6, 6);
 x = repelem(x, 100);
 y = repmat(y, 1, 100);
 E = l_simple([x; y]);
-
-plot3(x, y, E, '*');
 %{
 %% Create network
 network = {};

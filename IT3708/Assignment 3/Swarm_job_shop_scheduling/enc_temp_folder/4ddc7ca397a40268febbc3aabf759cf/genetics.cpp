@@ -174,11 +174,6 @@ void Phenotype::_deadlock_handler() {
 void Phenotype::calculate_fitness() {
 	std::vector<unsigned int> remaining_execution_time(data.N_MACHINES); //Time until each machine is done with its current job
 	std::vector<unsigned int> progress(data.N_MACHINES); //How far along each job is
-	std::vector<unsigned int> next_required_machine(data.N_JOBS);
-
-	for (int i = 0; i < data.N_JOBS; i++) {
-		next_required_machine[i] = data.work_order[i][0];
-	}
 
 	for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < 3; j++){
@@ -193,9 +188,10 @@ void Phenotype::calculate_fitness() {
 		bool no_job_scheduled = true;
 
 		for (int machine = 0; machine < data.N_MACHINES; machine++) {
-			unsigned int next_job = work_order[machine][progress[machine]];
-
-			if (remaining_execution_time[machine] == 0 && progress[machine] < data.N_JOBS - 1 && machine == next_required_machine[next_job]) {
+			
+			if (remaining_execution_time[machine] == 0 && progress[machine] < data.N_JOBS - 1) {
+				//Todo check if prerequisite jobs are done
+				unsigned int next_job = work_order[machine][progress[machine]];
 				progress[machine]++;
 				remaining_execution_time[machine] = data.execution_time[next_job][machine];
 				no_job_scheduled = false;

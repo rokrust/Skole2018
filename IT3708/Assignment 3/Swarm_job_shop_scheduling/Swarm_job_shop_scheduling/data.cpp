@@ -28,6 +28,20 @@ Data::Data(char* dir) {
 		}
 	}
 
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			std::cout << work_order[i][j] << '\t';
+		}
+		std::cout << std::endl;
+	}
+	std::cout << std::endl;
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			std::cout << execution_time[i][j] << '\t';
+		}
+		std::cout << std::endl;
+	}
+
 	file.close();
 }
 

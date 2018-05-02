@@ -8,9 +8,6 @@ class Phenotype {
 private:
 	int fitness;
 	unsigned int** work_order;
-	
-	unsigned int _lowest_remaining_execution_time(std::vector<unsigned int> remaining_execution_time);
-	void _deadlock_handler();
 
 public:
 	Phenotype();
@@ -21,6 +18,27 @@ public:
 	int get_fitness() { return fitness; }
 };
 
+class PhenotypeScheduler {
+private:
+	bool no_job_scheduled;
+	unsigned int jobs_left; //Amount of unfinished jobs
+	unsigned int total_execution_time;
+
+	std::vector<int> remaining_execution_time; //Time until each machine is done with its current job
+	std::vector<unsigned int> machine_progress; //How many jobs each machine has been working on
+	std::vector<unsigned int> job_progress; //How many machines have worked on each job
+	std::vector<unsigned int> required_machine; //The next machine required to work on each job
+
+public:
+	PhenotypeScheduler();
+
+	unsigned int lowest_remaining_execution_time();
+	void execution_step(unsigned int step_time, unsigned int** work_order, unsigned int fitness);
+	void assign_jobs(unsigned int** work_order);
+	void deadlock_handler();
+
+	friend Phenotype;
+};
 
 class Chromosome {
 private:
@@ -37,6 +55,7 @@ public:
 	unsigned int& operator [](unsigned int i) { return chromosome_string[i]; }
 	const unsigned int& operator [](int i) const { return chromosome_string[i]; }
 	unsigned int& operator [](int i) { return chromosome_string[i]; }
+
 
 protected:
 	unsigned int* chromosome_string;

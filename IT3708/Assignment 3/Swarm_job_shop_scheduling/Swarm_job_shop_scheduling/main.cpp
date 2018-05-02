@@ -23,10 +23,11 @@ int main(char* dir) {
 
 	std::cout << "Calculating fitness\n";
 	best.calculate_fitness();
+	std::cout << std::endl << std::endl;
 	worst.calculate_fitness();
 
 	std::cout << "Best gene: " << best.get_fitness() << std::endl;
-	std::cout << "Worst gene: " << best.get_fitness() << std::endl;
+	std::cout << "Worst gene: " << worst.get_fitness() << std::endl;
 	
 	system("PAUSE");
 	return 0;

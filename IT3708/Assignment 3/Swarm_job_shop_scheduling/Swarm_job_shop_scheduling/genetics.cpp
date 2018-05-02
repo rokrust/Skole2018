@@ -154,12 +154,28 @@ Phenotype::~Phenotype() {
 	delete[] work_order;
 }
 
-
-unsigned int Phenotype::_lowest_remaining_execution_time(std::vector<unsigned int> remaining_execution_time) {
-	unsigned int lowest_value = 999999;
+PhenotypeScheduler::PhenotypeScheduler() {
+	remaining_execution_time.resize(data.N_MACHINES, 0);
+	machine_progress.resize(data.N_MACHINES, 0);
+	job_progress.resize(data.N_JOBS, 0);
+	required_machine.resize(data.N_JOBS, 0);
 	
+	no_job_scheduled = true;
+	jobs_left = data.N_JOBS;
+	total_execution_time = 0;
+
+	//Set the first machine required for each job.
+	for (int job = 0; job < data.N_JOBS; job++) {
+		unsigned int beginning_machine = data.work_order[job][0] - 1;
+		required_machine[job] = beginning_machine;
+	}
+}
+
+unsigned int PhenotypeScheduler::lowest_remaining_execution_time() {
+	unsigned int lowest_value = 999999;
+
 	for (int i = 0; i < data.N_MACHINES; i++) {
-		if (lowest_value > remaining_execution_time[i] && remaining_execution_time[i] != 0) {
+		if (lowest_value > remaining_execution_time[i] && remaining_execution_time[i] > 0) {
 			lowest_value = remaining_execution_time[i];
 		}
 	}
@@ -167,61 +183,86 @@ unsigned int Phenotype::_lowest_remaining_execution_time(std::vector<unsigned in
 	return lowest_value;
 }
 
-void Phenotype::_deadlock_handler() {
+void PhenotypeScheduler::deadlock_handler() {
 	//fitness = 1000;
 }
 
-void Phenotype::calculate_fitness() {
-	std::vector<unsigned int> remaining_execution_time(data.N_MACHINES); //Time until each machine is done with its current job
-	std::vector<unsigned int> progress(data.N_MACHINES); //How far along each job is
-	std::vector<unsigned int> next_required_machine(data.N_JOBS);
+void PhenotypeScheduler::execution_step(unsigned int time_step, unsigned int** work_order, unsigned int fitness) {
+	for (int machine = 0; machine < data.N_MACHINES; machine++) {
+		remaining_execution_time[machine] -= time_step;
 
-	for (int i = 0; i < data.N_JOBS; i++) {
-		next_required_machine[i] = data.work_order[i][0];
-	}
+		//Machine finished executing the current job
+		if (remaining_execution_time[machine] == 0 && machine_progress[machine] != data.N_JOBS) {
+			unsigned int finished_job = work_order[machine][machine_progress[machine]];
+			std::cout << fitness << ": Machine " << machine << ", Finished executing job " << finished_job << std::endl;
 
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; j++){
-			std::cout << work_order[i][j] << '\t';
+			machine_progress[machine]++;	//Update progress for the machine
+			job_progress[finished_job]++;	//Update progress for the job
+			
+			required_machine[finished_job] = data.work_order[finished_job][job_progress[finished_job]] - 1; //jobs are one indexed
+
+			//Every job worked on. Machine is finished.
+			if (machine_progress[machine] == data.N_JOBS) {
+				jobs_left--;
+			}
+
+			no_job_scheduled = false;
 		}
-		std::cout << std::endl;
+
 	}
+}
 
-	fitness = 0;
-	unsigned int jobs_left = data.N_JOBS;
-	while (jobs_left) { //while jobs left
-		bool no_job_scheduled = true;
+void PhenotypeScheduler::assign_jobs(unsigned int **work_order) {
+	for (unsigned int machine = 0; machine < data.N_MACHINES; machine++) {
 
-		for (int machine = 0; machine < data.N_MACHINES; machine++) {
-			unsigned int next_job = work_order[machine][progress[machine]];
+		//Machine is done working. Don't assign anymore jobs to this one
+		if (machine_progress[machine] == data.N_JOBS) {
+			continue;
+		}
 
-			if (remaining_execution_time[machine] == 0 && progress[machine] < data.N_JOBS - 1 && machine == next_required_machine[next_job]) {
-				progress[machine]++;
-				remaining_execution_time[machine] = data.execution_time[next_job][machine];
+		unsigned int next_job = work_order[machine][machine_progress[machine]];
+
+		//The machine is cleared to work on the job
+		if (required_machine[next_job] == machine) {
+
+			//The machine has finished executing
+			//Assign the new job
+			if (remaining_execution_time[machine] <= 0) {
+				std::cout << "Machine " << machine << ": Assigned to job " << next_job << std::endl;
+				remaining_execution_time[machine] = data.execution_time[next_job][job_progress[next_job]];
 				no_job_scheduled = false;
-
-				std::cout << "\tMachine " << machine << ": Scheduled for job " << next_job << std::endl;
-
-				if (progress[machine] == data.N_JOBS - 1) {
-					jobs_left--; //One less job left
-				}
 			}
 		}
 
-		//Could not assign any jobs. Deadlock detected
-		if (no_job_scheduled) {
-			std::cout << "Deadlock detected!\n";
-			_deadlock_handler();
-			return;
+		//The machine has to wait until another job is finished.
+		else {
+			std::cout << "Machine " << machine << ": Waiting to run job " << next_job << std::endl;
+			remaining_execution_time[machine] = -1;
 		}
-		
 
-		unsigned int lowest_execution_time = _lowest_remaining_execution_time(remaining_execution_time);
-		fitness += lowest_execution_time;
-		for (int job = 0; job < data.N_JOBS; job++) {
-			remaining_execution_time[job] -= lowest_execution_time;
+	}
+
+}
+
+void Phenotype::calculate_fitness() {
+	fitness = 0;
+	PhenotypeScheduler scheduler;
+	scheduler.assign_jobs(work_order);
+	while (scheduler.jobs_left) {
+		scheduler.no_job_scheduled = true;
+
+		unsigned int time_step = scheduler.lowest_remaining_execution_time();
+		fitness += time_step;
+		scheduler.execution_step(time_step, work_order, fitness);
+
+		scheduler.assign_jobs(work_order);
+
+		if (scheduler.no_job_scheduled) {
+			std::cout << "Deadlock detected!\n";
+			scheduler.deadlock_handler();
 		}
 	}
+
 }
 
 /*

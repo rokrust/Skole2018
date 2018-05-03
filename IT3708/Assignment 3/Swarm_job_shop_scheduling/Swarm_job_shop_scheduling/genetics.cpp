@@ -79,31 +79,104 @@ void OttoRep::n_point_crossover(const Chromosome &p2, Chromosome& c1, Chromosome
 	}
 }
 
-void OttoRep::mutate() { 
+void OttoRep::_mutate_swap1() {
+	unsigned int m1 = rand() % data.N_MACHINES;
+	unsigned int m2 = rand() % data.N_MACHINES;
+	unsigned int job = rand() % data.N_JOBS;
+
+	unsigned int m1_base = m1 * data.N_JOBS;
+	unsigned int m2_base = m2 * data.N_JOBS;
+
+	unsigned int temp = chromosome_string[m1_base + job];
+	chromosome_string[m1_base + job] = chromosome_string[m2_base + job];
+	chromosome_string[m2_base + job] = temp;
+}
+
+void OttoRep::_mutate_swap2() {
+	_mutate_swap1();
+	_mutate_swap1();
+}
+
+
+void OttoRep::_mutate_insert1() {
+	unsigned int m = rand() % data.N_MACHINES;
+	unsigned int j1 = rand() % data.N_JOBS;
+	unsigned int j2 = rand() % data.N_JOBS;
+
+	unsigned int m_base = m*data.N_JOBS;
+	unsigned int inserted_job = _relative_to_absolute_job(m, j1);
+	chromosome_string[m_base + j1] = 99999;
+
+	chromosome_string[m_base + j1] = _absolute_to_relative_job(inserted_job, m, j2);
+}
+
+
+void OttoRep::_mutate_insert2() {
+	_mutate_insert1();
+	_mutate_insert1();
+}
+
+void OttoRep::mutate(MUTATION_OPERATIONS mutation) {
+	switch (mutation) {
+	case (SWAP1): 
+		_mutate_swap1();
+		break;
+	case (SWAP2):
+		_mutate_swap2();
+		break;
+	case (INSERT1):
+		_mutate_insert1();
+		break;
+	case (INSERT2):
+		_mutate_insert2();
+		break;
+	}
+}
+
+/*void OttoRep::mutate() { 
 	unsigned int i = rand() % INDIRECT_CHROMOSOME_LENGTH;
 	unsigned int new_val = rand() % (INDIRECT_CHROMOSOME_LENGTH - i - 1);
 
 	chromosome_string[i] = new_val;
+}*/
+
+unsigned int OttoRep::_relative_to_absolute_job(unsigned int machine, unsigned int job) {
+	unsigned int machine_base = machine*data.N_JOBS;
+	unsigned int absolute = chromosome_string[machine_base + job];
+
+	for (int j = job - 1; j >= 0; j--) {
+		if (chromosome_string[machine_base + j] <= absolute) {
+			absolute++;
+		}
+	}
+
+	return absolute;
+}
+
+//Funker ikke
+unsigned int OttoRep::_absolute_to_relative_job(unsigned int absolute, unsigned int machine, unsigned int job) {
+	unsigned int machine_base = machine*data.N_JOBS;
+	unsigned int relative = absolute;
+	
+	for (int i = machine_base; i < machine_base + job; i++) {
+		if (relative >= chromosome_string[machine_base + i]) {
+			relative--;
+		}
+	}
+
+	return relative;
 }
 
 void OttoRep::convert_to_phenotype(Phenotype& phenotype) {
 	//For each machine
-	for (int comp = 0; comp < data.N_MACHINES; comp++) {
-		unsigned int comp_base_i = comp*data.N_JOBS;
+	for (int machine = 0; machine < data.N_MACHINES; machine++) {
 		
 		//For each job of the machine
 		for (int i = 0; i < data.N_JOBS; i++) {
-			unsigned int job = chromosome_string[comp_base_i + i];
 
 			//Iterate through all earlier jobs to translate 
-			//relative index to absolute index
-			for (int j = i - 1; j >= 0; j--) {
-				if (chromosome_string[comp_base_i + j] <= job) {
-					job++;
-				}
-			}
-
-			phenotype.add_job(comp, i, job);
+			unsigned int job = _relative_to_absolute_job(machine, i);
+			phenotype.add_job(machine, i, job);
 		}
 	}
 }
@@ -171,6 +244,28 @@ PhenotypeScheduler::PhenotypeScheduler() {
 	}
 }
 
+void Phenotype::calculate_fitness() {
+	fitness = 0;
+	PhenotypeScheduler scheduler;
+	scheduler.assign_jobs(work_order);
+	while (scheduler.jobs_left) {
+		scheduler.no_job_scheduled = true;
+
+		unsigned int time_step = scheduler.lowest_remaining_execution_time();
+		fitness += time_step;
+		scheduler.execution_step(time_step, work_order, fitness);
+
+		scheduler.assign_jobs(work_order);
+
+		if (scheduler.no_job_scheduled) {
+			std::cout << "Deadlock detected!\n";
+			scheduler.deadlock_handler();
+		}
+	}
+
+}
+
+//PhenotypeScheduler
 unsigned int PhenotypeScheduler::lowest_remaining_execution_time() {
 	unsigned int lowest_value = 999999;
 
@@ -244,26 +339,6 @@ void PhenotypeScheduler::assign_jobs(unsigned int **work_order) {
 
 }
 
-void Phenotype::calculate_fitness() {
-	fitness = 0;
-	PhenotypeScheduler scheduler;
-	scheduler.assign_jobs(work_order);
-	while (scheduler.jobs_left) {
-		scheduler.no_job_scheduled = true;
-
-		unsigned int time_step = scheduler.lowest_remaining_execution_time();
-		fitness += time_step;
-		scheduler.execution_step(time_step, work_order, fitness);
-
-		scheduler.assign_jobs(work_order);
-
-		if (scheduler.no_job_scheduled) {
-			std::cout << "Deadlock detected!\n";
-			scheduler.deadlock_handler();
-		}
-	}
-
-}
 
 /*
 //Graph based approach

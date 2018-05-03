@@ -40,6 +40,7 @@ public:
 	friend Phenotype;
 };
 
+
 class Chromosome {
 private:
 
@@ -49,7 +50,7 @@ public:
 	Chromosome(char* str);
 
 	virtual void n_point_crossover(const Chromosome &rhs_parent, Chromosome& offspring1, Chromosome& offspring2, const unsigned int n_crossover_points) =0;
-	virtual void mutate() =0;
+	virtual void convert_to_phenotype(Phenotype& phenotype) = 0;
 
 	const unsigned int& operator [](unsigned int i) const { return chromosome_string[i]; }
 	unsigned int& operator [](unsigned int i) { return chromosome_string[i]; }
@@ -62,20 +63,48 @@ protected:
 	unsigned int chromosome_length;
 };
 
+enum MUTATION_OPERATIONS { SWAP1, SWAP2, INSERT1, INSERT2 };
+
 class OttoRep : public Chromosome{
 private:
+	void _mutate_swap1();
+	void _mutate_swap2();
+	void _mutate_insert1();
+	void _mutate_insert2();
 
+	unsigned int _relative_to_absolute_job(unsigned int machine, unsigned int job);
+	unsigned int _absolute_to_relative_job(unsigned int absolute, unsigned int machine, unsigned int job);
 public:
 	OttoRep() { chromosome_length = INDIRECT_CHROMOSOME_LENGTH;  chromosome_string = new unsigned int[INDIRECT_CHROMOSOME_LENGTH]; }
 	OttoRep(char* str);
-	~OttoRep() { delete chromosome_string; }
+	~OttoRep() { delete[] chromosome_string; }
+
+	void mutate(MUTATION_OPERATIONS mutation);
 
 	void n_point_crossover(const Chromosome &rhs_parent, Chromosome& offspring1, Chromosome& offspring2, const unsigned int n_crossover_points = 1);
-	void mutate();
 	void convert_to_phenotype(Phenotype& phenotype);
 
 
 	bool operator == (const OttoRep &rhs);
 	bool operator == (const OttoRep &rhs) const;
 	friend std::ostream& operator << (std::ostream& out, const OttoRep& chromosome);
+
+	void test() {
+		for (int i = 0; i < 3; i++) {
+			for (int j = 0; j < 3; j++) {
+				std::cout << chromosome_string[i * 3 + j] << '\t';
+			}
+			std::cout << std::endl;
+		}
+		std::cout << std::endl;
+
+		for (int i = 0; i < 3; i++) {
+			for (int j = 0; j < 3; j++) {
+				unsigned int absolute = _relative_to_absolute_job(i, j);
+				std::cout <<  _absolute_to_relative_job(absolute, i, j) << '\t';
+			}
+			std::cout << std::endl;
+		}
+		
+	}
 };

@@ -8,6 +8,6 @@
 #define ABC_POPULATION 100
 #define ABC_SCOUT_PERCENTAGE 0.5
 #define ABC_ONLOOKER_PERCENTAGE 0.5
-
+#define TIME_TO_LIVE 5
 
 //Ant colony

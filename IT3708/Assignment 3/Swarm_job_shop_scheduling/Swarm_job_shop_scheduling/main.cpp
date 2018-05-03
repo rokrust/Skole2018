@@ -29,6 +29,9 @@ int main(char* dir) {
 	std::cout << "Best gene: " << best.get_fitness() << std::endl;
 	std::cout << "Worst gene: " << worst.get_fitness() << std::endl;
 	
+	std::cout << std::endl << std::endl;
+	best_gene.test();
+
 	system("PAUSE");
 	return 0;
 }

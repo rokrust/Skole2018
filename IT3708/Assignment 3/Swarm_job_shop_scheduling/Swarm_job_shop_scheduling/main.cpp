@@ -32,6 +32,9 @@ int main(char* dir) {
 	std::cout << std::endl << std::endl;
 	best_gene.test();
 
+	std::cout << std::endl;
+	best_gene.mutate(INSERT1);
+	
 	system("PAUSE");
 	return 0;
 }

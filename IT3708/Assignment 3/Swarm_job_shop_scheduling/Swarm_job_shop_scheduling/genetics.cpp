@@ -97,20 +97,34 @@ void OttoRep::_mutate_swap2() {
 	_mutate_swap1();
 }
 
-
+//Picks a machine and moves a job to another location
 void OttoRep::_mutate_insert1() {
 	unsigned int m = rand() % data.N_MACHINES;
 	unsigned int j1 = rand() % data.N_JOBS;
 	unsigned int j2 = rand() % data.N_JOBS;
+	unsigned int j_max = std::max(j1, j2);
+	unsigned int j_min = std::min(j1, j2);
+
+	std::cout << "Machine " << m << ", remove job " << j_min << ", insert at position " << j_max << std::endl;
 
 	unsigned int m_base = m*data.N_JOBS;
-	unsigned int inserted_job = _relative_to_absolute_job(m, j1);
-	chromosome_string[m_base + j1] = 99999;
+	unsigned int inserted_job = chromosome_string[m_base + j_min];
 
-	chromosome_string[m_base + j1] = _absolute_to_relative_job(inserted_job, m, j2);
+	for (int i = j_min + m_base; i < j_max + m_base; i++) {
+		chromosome_string[i] = chromosome_string[i + 1];
+
+		if (inserted_job > chromosome_string[i]) {
+			inserted_job--;
+		}
+		else {
+			chromosome_string[i]++;
+		}
+	}
+
+	chromosome_string[m_base + j_max] = inserted_job;
 }
 
-
+//Runs insert 
 void OttoRep::_mutate_insert2() {
 	_mutate_insert1();
 	_mutate_insert1();
@@ -153,13 +167,12 @@ unsigned int OttoRep::_relative_to_absolute_job(unsigned int machine, unsigned i
 	return absolute;
 }
 
-//Funker ikke
 unsigned int OttoRep::_absolute_to_relative_job(unsigned int absolute, unsigned int machine, unsigned int job) {
 	unsigned int machine_base = machine*data.N_JOBS;
 	unsigned int relative = absolute;
 	
 	for (int i = machine_base; i < machine_base + job; i++) {
-		if (relative >= chromosome_string[machine_base + i]) {
+		if (relative > chromosome_string[i]) {
 			relative--;
 		}
 	}

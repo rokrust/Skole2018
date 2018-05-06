@@ -1,40 +1,22 @@
 #include "data.h"
 #include "genetics.h"
 #include "config.h"
+#include "artificial_bee.h"
+
 #include <iostream>
+
 
 Data data;
 
 int main(char* dir) {
 	std::cout << "Reading data\n";
-	data = Data("../Test Data/0.txt");
+	data = Data("../Test Data/1.txt");
 
-	char* str_best = "000200110";
-
-	char* str_worst = "000000100";
+	Hive hive;
+	int acceptable_value = OPTIMAL_VALUE / (1 - 0.1);
+	hive.run_optimization(acceptable_value);
 	
-	std::cout << "Genotypes created\n";
-	OttoRep best_gene(str_best), worst_gene(str_worst);
 
-	std::cout << "Phenotypes created\n";
-	Phenotype best, worst;
-	best_gene.convert_to_phenotype(best);
-	worst_gene.convert_to_phenotype(worst);
-
-	std::cout << "Calculating fitness\n";
-	best.calculate_fitness();
-	std::cout << std::endl << std::endl;
-	worst.calculate_fitness();
-
-	std::cout << "Best gene: " << best.get_fitness() << std::endl;
-	std::cout << "Worst gene: " << worst.get_fitness() << std::endl;
-	
-	std::cout << std::endl << std::endl;
-	best_gene.test();
-
-	std::cout << std::endl;
-	best_gene.mutate(INSERT1);
-	
 	system("PAUSE");
 	return 0;
 }

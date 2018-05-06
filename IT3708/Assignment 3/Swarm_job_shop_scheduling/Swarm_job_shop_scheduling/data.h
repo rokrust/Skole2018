@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 class Data {
 private:
 	void _allocate_members();
@@ -16,6 +17,8 @@ public:
 
 	~Data();
 	Data operator=(const Data& data);
+
+	friend std::ostream& operator << (std::ostream& out, const Data& data);
 };
 
 extern Data data;

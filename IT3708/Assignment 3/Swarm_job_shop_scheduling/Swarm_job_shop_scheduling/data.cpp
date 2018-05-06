@@ -27,21 +27,7 @@ Data::Data(char* dir) {
 			machine_nbr = 0;
 		}
 	}
-
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; j++) {
-			std::cout << work_order[i][j] << '\t';
-		}
-		std::cout << std::endl;
-	}
-	std::cout << std::endl;
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; j++) {
-			std::cout << execution_time[i][j] << '\t';
-		}
-		std::cout << std::endl;
-	}
-
+	std::cout << *this;
 	file.close();
 }
 
@@ -95,4 +81,24 @@ void Data::_allocate_members() {
 		execution_time[i] = new unsigned int[N_MACHINES];
 		work_order[i] = new unsigned int[N_MACHINES];
 	}
+}
+
+std::ostream& operator << (std::ostream& out, const Data& d) {
+	for (int job = 0; job < d.N_JOBS; job++) {
+		for (int machine = 0; machine < d.N_MACHINES; machine++) {
+			out << d.work_order[job][machine] << '\t';
+		}
+		out << std::endl;
+	}
+
+	out << std::endl;
+
+	for (int job = 0; job < d.N_JOBS; job++) {
+		for (int machine = 0; machine < d.N_MACHINES; machine++) {
+			out << d.execution_time[job][machine] << '\t';
+		}
+		out << std::endl;
+	}
+
+	return out;
 }

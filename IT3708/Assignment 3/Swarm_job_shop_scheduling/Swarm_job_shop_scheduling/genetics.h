@@ -81,9 +81,29 @@ public:
 
 protected:
 	unsigned int* chromosome_string;
-	unsigned int chromosome_length;
 };
 
+
+class NewRep : public Chromosome {
+private:
+	void _mutate_swap1();
+	void _mutate_swap2();
+	void _mutate_insert1();
+	void _mutate_insert2();
+
+public:
+	NewRep() { chromosome_string = new unsigned int[data.N_JOBS*data.N_MACHINES]; }
+	NewRep(char* str);
+	NewRep(const NewRep& chromosome);
+	
+	~NewRep() { delete[] chromosome_string; }
+	
+	void convert_to_phenotype(Phenotype& phenotype);
+	void mutate(MUTATION_OPERATIONS mutation);
+
+	NewRep operator =(const NewRep &rhs);
+	friend std::ostream& operator << (std::ostream& out, const NewRep& chromosome);
+};
 
 class OttoRep : public Chromosome{
 private:

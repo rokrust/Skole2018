@@ -264,7 +264,7 @@ void Phenotype::calculate_fitness() {
 
 		unsigned int time_step = scheduler.lowest_remaining_execution_time();
 		if (time_step == 0) {
-			//std::cout << "Deadlock detected!\n";
+			std::cout << "Deadlock detected!\n";
 			scheduler.deadlock_handler(work_order);
 			time_step = scheduler.lowest_remaining_execution_time();
 			deadlock_happened = true;
@@ -452,64 +452,105 @@ void PhenotypeScheduler::assign_jobs(unsigned int **work_order) {
 }
 
 
-/*
-//Graph based approach
-void Phenotype::calculate_fitness() {
-	unsigned int adjacency_list** = new unsigned int
-
-}
-*/
-/*
-void OttoRep::n_point_crossover(const Chromosome &p2, Chromosome& c1, Chromosome& c2, unsigned int n_crossover_points) {
-unsigned int cross2 = rand() % (INDIRECT_CHROMOSOME_LENGTH - 1) + 1;
-unsigned int cross1 = rand() % cross2;
-unsigned int prev_cross_end = 0;
-
-//Special case with a single crossover point
-if (n_crossover_points == 1) {
-
-for (unsigned int i = prev_cross_end; i < cross1; i++) {
-c1[i] = (*this)[i];
-c2[i] = p2[i];
-}
-
-for (unsigned int i = cross1; i < INDIRECT_CHROMOSOME_LENGTH; i++) {
-c2[i] = (*this)[i];
-c1[i] = p2[i];
-}
-return;
-}
 
 
-//Create children through a series of crossover points
-for (int i = 1; i < n_crossover_points && cross1 != (INDIRECT_CHROMOSOME_LENGTH-1); i++) {
-
-for (unsigned int i = prev_cross_end; i < cross1; i++) {
-c1[i] = (*this)[i];
-c2[i] = p2[i];
+//NewRep
+NewRep::NewRep(char* str) : NewRep() {
+	for (int i = 0; str[i] != '\0'; i++) {
+		chromosome_string[i] = str[i] - '0'; //translate to indices
+	}
 }
 
-for (unsigned int i = cross1; i < cross2; i++) {
-c2[i] = (*this)[i];
-c1[i] = p2[i];
-}
-prev_cross_end = cross2;
-cross2 = rand() % (INDIRECT_CHROMOSOME_LENGTH - prev_cross_end + 1) + prev_cross_end;
-cross1 = rand() % (cross2 - prev_cross_end + 1) + prev_cross_end;
+NewRep::NewRep(const NewRep& chromosome) : NewRep() {
+	for (int i = 0; i < data.N_JOBS*data.N_MACHINES; i++) {
+		chromosome_string[i] = chromosome.chromosome_string[i];
+	}
 }
 
-//Fill the last part of the chromosomes
-if (n_crossover_points % 2 == 0) {
-for (int i = prev_cross_end; i < INDIRECT_CHROMOSOME_LENGTH; i++) {
-c1[i] = (*this)[i];
-c2[i] = p2[i];
+void NewRep::convert_to_phenotype(Phenotype& phenotype) {
+	std::vector<int> job_progress(data.N_JOBS, 0);
+	std::vector<int> machine_progress(data.N_MACHINES, 0);
+
+	//Iterate through chromosome string
+	for (int i = 0; i < data.N_JOBS*data.N_MACHINES; i++) {
+		int job = chromosome_string[i];
+		int required_machine = data.work_order[job][job_progress[job]];
+		phenotype.add_job(required_machine, machine_progress[required_machine], job);
+		machine_progress[required_machine]++;
+		job_progress[job]++;
+	}
 }
+
+void NewRep::_mutate_swap1() {
+	int i = rand() % data.N_JOBS*data.N_MACHINES;
+	int j = rand() % data.N_JOBS*data.N_MACHINES;
+
+	unsigned int temp = chromosome_string[i];
+	chromosome_string[i] = chromosome_string[j];
+	chromosome_string[j] = temp;
 }
-else {
-for (int i = prev_cross_end; i < INDIRECT_CHROMOSOME_LENGTH; i++) {
-c2[i] = (*this)[i];
-c1[i] = p2[i];
+
+void NewRep::_mutate_swap2() {
+	_mutate_swap1();
+	_mutate_swap1();
 }
+
+void NewRep::_mutate_insert1() {
+	int i = rand() % data.N_JOBS*data.N_MACHINES;
+	int j = rand() % data.N_JOBS*data.N_MACHINES;
+
+	int job = chromosome_string[i];
+
+	if (i < j) {
+		for (int k = i; k < j; k++) {
+			chromosome_string[k] = chromosome_string[k + 1];
+		}
+	}
+	else {
+		for (int k = i; k >= j; k--) {
+			chromosome_string[k] = chromosome_string[k - 1];
+		}
+	}
+
+	chromosome_string[j] = job;
 }
+
+void NewRep::_mutate_insert2() {
+	_mutate_insert1();
+	_mutate_insert1();
 }
-*/
+
+void NewRep::mutate(MUTATION_OPERATIONS mutation) {
+	switch (mutation) {
+	case (SWAP1):
+		_mutate_swap1();
+		break;
+	case (SWAP2):
+		_mutate_swap2();
+		break;
+	case (INSERT1):
+		_mutate_insert1();
+		break;
+	case (INSERT2):
+		_mutate_insert2();
+		break;
+	}
+}
+
+NewRep NewRep::operator =(const NewRep &rhs) {
+	for (int i = 0; i < data.N_JOBS*data.N_MACHINES; i++) {
+		chromosome_string[i] = rhs.chromosome_string[i];
+	}
+
+	return *this;
+}
+
+std::ostream& operator << (std::ostream& out, const NewRep& chromosome) {
+	out << chromosome.chromosome_string[0];
+
+	for (int i = 1; i < data.N_JOBS*data.N_MACHINES; i++) {
+		out << ", " << chromosome.chromosome_string[i];
+	}
+
+	return out;
+}

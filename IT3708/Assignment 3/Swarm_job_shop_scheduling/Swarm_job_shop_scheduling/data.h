@@ -5,11 +5,11 @@ private:
 	void _allocate_members();
 
 public:
-	unsigned int N_JOBS;
-	unsigned int N_MACHINES;
+	int N_JOBS;
+	int N_MACHINES;
 
-	unsigned int** execution_time;
-	unsigned int** work_order;
+	int** execution_time;
+	int** work_order;
 
 	Data() { ; }
 	Data(char* dir);

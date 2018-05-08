@@ -1,24 +1,21 @@
 #include "artificial_bee.h"
 #include "config.h"
 
-FoodSource::FoodSource() : time_to_live(ABC_TIME_TO_LIVE) { 
+Bee::Bee() : time_to_live(ABC_TIME_TO_LIVE) { 
+	solution.random_initialization();
 	solution.convert_to_phenotype(schedule);
-
-	//std::cout << solution << std::endl << std::endl;
-	//std::cout << schedule << std::endl;
-
 	schedule.calculate_fitness();
 }
 
-FoodSource::FoodSource(char* gene) : FoodSource() {
-	solution = OttoRep(gene);
+Bee::Bee(char* gene) : Bee() {
+	solution = CHROMOSOME_TYPE(gene);
 	solution.convert_to_phenotype(schedule);
 	schedule.calculate_fitness();
 }
 
 //Assumes phenotypes and solutions are initialized
-void FoodSource::local_search() {
-	OttoRep new_solution = solution;
+void Bee::local_search() {
+	CHROMOSOME_TYPE new_solution = solution;
 	Phenotype new_schedule = schedule;
 
 	//Mutate solution a number of times or until a better solution is found
@@ -50,8 +47,8 @@ void FoodSource::local_search() {
 }
 
 //Runs the mutation given by operation and returns a boolean saying if the solution improved or not
-bool FoodSource::search_operation(MUTATION_OPERATIONS operation) {
-	OttoRep new_solution = solution;
+bool Bee::search_operation(MUTATION_OPERATIONS operation) {
+	CHROMOSOME_TYPE new_solution = solution;
 	Phenotype new_schedule = schedule;
 
 	new_solution.mutate(operation);
@@ -70,7 +67,7 @@ bool FoodSource::search_operation(MUTATION_OPERATIONS operation) {
 	return false;
 }
 
-FoodSource FoodSource::operator = (FoodSource rhs) {
+Bee Bee::operator = (const Bee& rhs) {
 	solution = rhs.solution;
 	schedule = rhs.schedule;
 	time_to_live = rhs.time_to_live;
@@ -78,7 +75,7 @@ FoodSource FoodSource::operator = (FoodSource rhs) {
 	return *this;
 }
 
-void FoodSource::create_scout_bee() {
+void Bee::create_scout_bee() {
 	for(int i = 0; i < ABC_N_SCOUT_BEE_INSERTIONS; i++) {
 		MUTATION_OPERATIONS operation = static_cast<MUTATION_OPERATIONS>(rand() % N_MUTATIONS);
 		//solution.mutate(INSERT1);
@@ -96,8 +93,8 @@ Hive::Hive() {
 	employed_bees.resize(ABC_POPULATION);
 	adaptive_list.reserve(ABC_ADAPTIVE_LIST_SIZE);
 
-	unsigned int best_food_source = INF;
-	unsigned int elite_bee_index = 0;
+	int best_bee = INF;
+	int elite_bee_index = 0;
 
 	//Initialize the adpative list
 	for (int i = 0; i < ABC_ADAPTIVE_LIST_SIZE; i++) {
@@ -107,9 +104,9 @@ Hive::Hive() {
 
 	//Find the best solution
 	for (int i = 0; i < ABC_POPULATION; i++) {
-		if (employed_bees[i].get_nectar_amount() < best_food_source) {
+		if (employed_bees[i].get_nectar_amount() < best_bee) {
 			elite_bee_index = i;
-			best_food_source = employed_bees[i].get_nectar_amount();
+			best_bee = employed_bees[i].get_nectar_amount();
 		}
 	}
 
@@ -129,7 +126,7 @@ void Hive::employed_bee_phase() {
 
 void Hive::onlooker_bee_phase() {
 	for (int i = 0; i < ABC_POPULATION; i++) {
-		FoodSource* onlooker_bee = _tournament_selection();
+		Bee* onlooker_bee = _tournament_selection();
 		_search_for_new_sources(onlooker_bee);
 
 		if (onlooker_bee->get_remaining_time_to_live() == 0) {
@@ -144,7 +141,7 @@ void Hive::scout_bee_phase() {
 			return;
 		}
 
-		FoodSource* scout_bee = old_bee.back();
+		Bee* scout_bee = old_bee.back();
 		old_bee.pop_back();
 
 		*scout_bee = elite_bee;
@@ -153,7 +150,7 @@ void Hive::scout_bee_phase() {
 }
 
 //Will either do several mutations in a local search or pick a mutation from the adaptive list
-void Hive::_search_for_new_sources(FoodSource* bee) {
+void Hive::_search_for_new_sources(Bee* bee) {
 	bool do_local_search = (rand() % 100) <= ABC_LOCAL_SEARCH_CHANCE * 100;
 	//There are two ways of searching
 	if (do_local_search) {
@@ -189,7 +186,7 @@ void Hive::_refill_adaptive_list() {
 	successful_mutations.clear();
 }
 
-void Hive::_run_adaptive_list_operation(FoodSource* bee) {
+void Hive::_run_adaptive_list_operation(Bee* bee) {
 	MUTATION_OPERATIONS operation = adaptive_list.back();
 	bool solution_improved = bee->search_operation(operation);
 
@@ -206,12 +203,12 @@ void Hive::_run_adaptive_list_operation(FoodSource* bee) {
 
 }
 
-FoodSource* Hive::_tournament_selection() {
-	unsigned int i = rand() % employed_bees.size();
-	FoodSource* best_bee = &employed_bees[i];
+Bee* Hive::_tournament_selection() {
+	int i = rand() % employed_bees.size();
+	Bee* best_bee = &employed_bees[i];
 
 	for (int t = 0; t < ABC_TOURNAMENT_SIZE; t++) {
-		unsigned int i = rand() % employed_bees.size();
+		int i = rand() % employed_bees.size();
 		if (*best_bee > employed_bees[i]) {
 			best_bee = &employed_bees[i];
 		}
@@ -220,7 +217,7 @@ FoodSource* Hive::_tournament_selection() {
 	return best_bee;
 }
 
-void Hive::run_optimization(unsigned int optimal_value) {
+void Hive::run_optimization(int optimal_value) {
 	for (int i = 0; i < ABC_MAX_GENERATIONS && elite_bee.get_nectar_amount() > optimal_value; i++) {
 		employed_bee_phase();
 		onlooker_bee_phase();
@@ -229,9 +226,10 @@ void Hive::run_optimization(unsigned int optimal_value) {
 	}
 
 	std::cout << "Best estimate: " << elite_bee.get_nectar_amount() << std::endl;
+	elite_bee.print();
 }
 
-std::ostream& operator << (std::ostream& out, const FoodSource& food_source) {
-	out << food_source.solution;
+std::ostream& operator << (std::ostream& out, const Bee& bee) {
+	out << bee.solution;
 	return out;
 }

@@ -32,14 +32,14 @@ OttoRep::OttoRep(const OttoRep& chromosome): OttoRep() {
 }
 
 void OttoRep::_mutate_swap1() {
-	unsigned int m1 = rand() % data.N_MACHINES;
-	unsigned int m2 = rand() % data.N_MACHINES;
-	unsigned int job = rand() % data.N_JOBS;
+	int m1 = rand() % data.N_MACHINES;
+	int m2 = rand() % data.N_MACHINES;
+	int job = rand() % data.N_JOBS;
 
-	unsigned int m1_base = m1 * data.N_JOBS;
-	unsigned int m2_base = m2 * data.N_JOBS;
+	int m1_base = m1 * data.N_JOBS;
+	int m2_base = m2 * data.N_JOBS;
 
-	unsigned int temp = chromosome_string[m1_base + job];
+	int temp = chromosome_string[m1_base + job];
 	chromosome_string[m1_base + job] = chromosome_string[m2_base + job];
 	chromosome_string[m2_base + job] = temp;
 }
@@ -53,14 +53,14 @@ void OttoRep::_mutate_swap2() {
 
 //Picks a machine and moves a job to another location
 void OttoRep::_mutate_insert1() {
-	unsigned int m = rand() % data.N_MACHINES;
-	unsigned int j1 = rand() % data.N_JOBS;
-	unsigned int j2 = rand() % data.N_JOBS;
-	unsigned int j_max = std::max(j1, j2);
-	unsigned int j_min = std::min(j1, j2);
+	int m = rand() % data.N_MACHINES;
+	int j1 = rand() % data.N_JOBS;
+	int j2 = rand() % data.N_JOBS;
+	int j_max = std::max(j1, j2);
+	int j_min = std::min(j1, j2);
 
-	unsigned int m_base = m*data.N_JOBS;
-	unsigned int inserted_job = chromosome_string[m_base + j_min];
+	int m_base = m*data.N_JOBS;
+	int inserted_job = chromosome_string[m_base + j_min];
 
 	for (int i = j_min + m_base; i < j_max + m_base; i++) {
 		chromosome_string[i] = chromosome_string[i + 1];
@@ -83,8 +83,8 @@ void OttoRep::_mutate_insert2() {
 }
 
 void OttoRep::_mutate_flip1() {
-	unsigned int machine = rand() % data.N_MACHINES;
-	unsigned int job = rand() % data.N_JOBS;
+	int machine = rand() % data.N_MACHINES;
+	int job = rand() % data.N_JOBS;
 
 	chromosome_string[machine*data.N_JOBS + job] = rand() % (data.N_JOBS - job);
 }
@@ -95,14 +95,14 @@ void OttoRep::_mutate_flip2() {
 }
 
 void OttoRep::_mutate_swap_machines() {
-	unsigned int m1 = rand() % data.N_MACHINES;
-	unsigned int m2 = rand() % data.N_MACHINES;
+	int m1 = rand() % data.N_MACHINES;
+	int m2 = rand() % data.N_MACHINES;
 
-	unsigned int m1_base = data.N_JOBS*m1;
-	unsigned int m2_base = data.N_JOBS*m2;
+	int m1_base = data.N_JOBS*m1;
+	int m2_base = data.N_JOBS*m2;
 
 	for (int job = 0; job < data.N_JOBS; job++) {
-		unsigned int temp = chromosome_string[m1_base + job];
+		int temp = chromosome_string[m1_base + job];
 		chromosome_string[m1_base + job] = chromosome_string[m2_base + job];
 		chromosome_string[m2_base + job] = temp;
 	}
@@ -135,9 +135,9 @@ void OttoRep::mutate(MUTATION_OPERATIONS mutation) {
 	}
 }
 
-unsigned int OttoRep::_relative_to_absolute_job(unsigned int machine, unsigned int job) {
-	unsigned int machine_base = machine*data.N_JOBS;
-	unsigned int absolute = chromosome_string[machine_base + job];
+int OttoRep::_relative_to_absolute_job(int machine, int job) {
+	int machine_base = machine*data.N_JOBS;
+	int absolute = chromosome_string[machine_base + job];
 
 	for (int j = job - 1; j >= 0; j--) {
 		if (chromosome_string[machine_base + j] <= absolute) {
@@ -148,9 +148,9 @@ unsigned int OttoRep::_relative_to_absolute_job(unsigned int machine, unsigned i
 	return absolute;
 }
 
-unsigned int OttoRep::_absolute_to_relative_job(unsigned int absolute, unsigned int machine, unsigned int job) {
-	unsigned int machine_base = machine*data.N_JOBS;
-	unsigned int relative = absolute;
+int OttoRep::_absolute_to_relative_job(int absolute, int machine, int job) {
+	int machine_base = machine*data.N_JOBS;
+	int relative = absolute;
 	
 	for (int i = machine_base; i < machine_base + job; i++) {
 		if (relative > chromosome_string[i]) {
@@ -169,7 +169,7 @@ void OttoRep::convert_to_phenotype(Phenotype& phenotype) {
 		for (int i = 0; i < data.N_JOBS; i++) {
 
 			//Iterate through all earlier jobs to translate 
-			unsigned int job = _relative_to_absolute_job(machine, i);
+			int job = _relative_to_absolute_job(machine, i);
 			phenotype.add_job(machine, i, job);
 		}
 	}
@@ -205,7 +205,7 @@ OttoRep OttoRep::operator =(const OttoRep &rhs) {
 
 void OttoRep::random_initialization() {
 	for (int machine = 0; machine < data.N_MACHINES; machine++) {
-		unsigned int base = machine*data.N_JOBS;
+		int base = machine*data.N_JOBS;
 		for (int job = 0; job < data.N_JOBS; job++) {
 			chromosome_string[base + job] = rand() % (data.N_JOBS - job);
 		}
@@ -228,11 +228,11 @@ std::ostream& operator << (std::ostream& out, const OttoRep& chromosome) {
 
 //Phenotype
 Phenotype::Phenotype() {
-	work_order = new unsigned int*[data.N_MACHINES];
+	work_order = new int*[data.N_MACHINES];
 	fitness = 0;
 
 	for (int machine = 0; machine < data.N_MACHINES; machine++) {
-		work_order[machine] = new unsigned int[data.N_JOBS];
+		work_order[machine] = new int[data.N_JOBS];
 	}
 }
 
@@ -262,9 +262,9 @@ void Phenotype::calculate_fitness() {
 	
 	while (scheduler.jobs_left) {
 
-		unsigned int time_step = scheduler.lowest_remaining_execution_time();
+
+		int time_step = scheduler.lowest_remaining_execution_time();
 		if (time_step == 0) {
-			std::cout << "Deadlock detected!\n";
 			scheduler.deadlock_handler(work_order);
 			time_step = scheduler.lowest_remaining_execution_time();
 			deadlock_happened = true;
@@ -296,15 +296,15 @@ Phenotype Phenotype::operator =(Phenotype rhs) {
 	return *this;
 }
 
-void Phenotype::convert_to_genotype(OttoRep& chromosome) {
+void Phenotype::convert_to_genotype(CHROMOSOME_TYPE& chromosome) {
 
 	for (int machine = 0; machine < data.N_MACHINES; machine++) {
-		unsigned int base = machine*data.N_JOBS;
+		int base = machine*data.N_JOBS;
 
 		for (int job = 0; job < data.N_JOBS; job++) {
 			
 			//Iterate backwards and calculate genotype value
-			unsigned int genotype_value = work_order[machine][job];
+			int genotype_value = work_order[machine][job];
 			for (int i = job-1; i >= 0; i--) {
 				if (work_order[machine][i] <= genotype_value) {
 					genotype_value--;
@@ -336,18 +336,18 @@ PhenotypeScheduler::PhenotypeScheduler() {
 	job_progress.resize(data.N_JOBS, 0);
 	required_machine.resize(data.N_JOBS, 0);
 
-	jobs_left = data.N_JOBS;
+	jobs_left = data.N_MACHINES;
 	total_execution_time = 0;
 
 	//Set the first machine required for each job.
 	for (int job = 0; job < data.N_JOBS; job++) {
-		unsigned int beginning_machine = data.work_order[job][0];
+		int beginning_machine = data.work_order[job][0];
 		required_machine[job] = beginning_machine;
 	}
 }
 
-unsigned int PhenotypeScheduler::lowest_remaining_execution_time() {
-	unsigned int lowest_value = 999999;
+int PhenotypeScheduler::lowest_remaining_execution_time() {
+	int lowest_value = 999999;
 
 	for (int i = 0; i < data.N_MACHINES; i++) {
 		if (lowest_value > remaining_execution_time[i] && remaining_execution_time[i] > 0) {
@@ -363,7 +363,7 @@ unsigned int PhenotypeScheduler::lowest_remaining_execution_time() {
 	return lowest_value;
 }
 
-void PhenotypeScheduler::deadlock_handler(unsigned int** work_order) {
+void PhenotypeScheduler::deadlock_handler(int** work_order) {
 	for (int machine = 0; machine < data.N_MACHINES; machine++) {
 		for (int job = 0; job < data.N_JOBS; job++) {
 			
@@ -372,12 +372,12 @@ void PhenotypeScheduler::deadlock_handler(unsigned int** work_order) {
 //				std::cout << work_order[machine][0] << ", " << work_order[machine][1] << ", " << work_order[machine][2] << std::endl;
 				
 				//Find out when the machine was supposed to do the job
-				unsigned int current_index = machine_progress[machine];
+				int current_index = machine_progress[machine];
 				for (int i = current_index; i < data.N_JOBS; i++) {
 
 					if (work_order[machine][i] == job) {
 						//Swap the required job with the one that is stuck
-						unsigned int temp = work_order[machine][current_index];
+						int temp = work_order[machine][current_index];
 						work_order[machine][current_index] = work_order[machine][i];
 						work_order[machine][i] = temp;
 						remaining_execution_time[machine] = data.execution_time[job][job_progress[job]];
@@ -392,7 +392,7 @@ void PhenotypeScheduler::deadlock_handler(unsigned int** work_order) {
 	}
 }
 
-void PhenotypeScheduler::execution_step(unsigned int time_step, unsigned int** work_order, unsigned int fitness) {
+void PhenotypeScheduler::execution_step(int time_step, int** work_order, int fitness) {
 	//std::cout << data << std::endl;
 
 	for (int machine = 0; machine < data.N_MACHINES; machine++) {
@@ -400,7 +400,7 @@ void PhenotypeScheduler::execution_step(unsigned int time_step, unsigned int** w
 
 		//Machine finished executing the current job
 		if (remaining_execution_time[machine] == 0 && machine_progress[machine] != data.N_JOBS) {
-			unsigned int finished_job = work_order[machine][machine_progress[machine]];
+			int finished_job = work_order[machine][machine_progress[machine]];
 			//std::cout << fitness << ": Machine " << machine << ", Finished executing job " << finished_job << std::endl;
 
 			machine_progress[machine]++;	//Update progress for the machine
@@ -420,15 +420,15 @@ void PhenotypeScheduler::execution_step(unsigned int time_step, unsigned int** w
 	}
 }
 
-void PhenotypeScheduler::assign_jobs(unsigned int **work_order) {
-	for (unsigned int machine = 0; machine < data.N_MACHINES; machine++) {
+void PhenotypeScheduler::assign_jobs(int **work_order) {
+	for (int machine = 0; machine < data.N_MACHINES; machine++) {
 
 		//Machine is done working. Don't assign anymore jobs to this one
 		if (machine_progress[machine] == data.N_JOBS) {
 			continue;
 		}
 
-		unsigned int next_job = work_order[machine][machine_progress[machine]];
+		int next_job = work_order[machine][machine_progress[machine]];
 
 		//The machine is cleared to work on the job
 		if (required_machine[next_job] == machine) {
@@ -474,7 +474,8 @@ void NewRep::convert_to_phenotype(Phenotype& phenotype) {
 	//Iterate through chromosome string
 	for (int i = 0; i < data.N_JOBS*data.N_MACHINES; i++) {
 		int job = chromosome_string[i];
-		int required_machine = data.work_order[job][job_progress[job]];
+
+ 		int required_machine = data.work_order[job][job_progress[job]];
 		phenotype.add_job(required_machine, machine_progress[required_machine], job);
 		machine_progress[required_machine]++;
 		job_progress[job]++;
@@ -485,7 +486,7 @@ void NewRep::_mutate_swap1() {
 	int i = rand() % data.N_JOBS*data.N_MACHINES;
 	int j = rand() % data.N_JOBS*data.N_MACHINES;
 
-	unsigned int temp = chromosome_string[i];
+	int temp = chromosome_string[i];
 	chromosome_string[i] = chromosome_string[j];
 	chromosome_string[j] = temp;
 }
@@ -534,6 +535,24 @@ void NewRep::mutate(MUTATION_OPERATIONS mutation) {
 	case (INSERT2):
 		_mutate_insert2();
 		break;
+	}
+}
+
+void NewRep::random_initialization() {
+	std::vector<int> remaining(data.N_JOBS, data.N_MACHINES);
+	std::vector<int> jobs(data.N_JOBS);
+	for (int i = 0; i < data.N_JOBS; i++) {
+		jobs[i] = i;
+	}
+
+	for (int i = 0; i < data.N_JOBS*data.N_MACHINES; i++) {
+		int index = rand() % jobs.size();
+		int job = jobs[index];
+		chromosome_string[i] = job;
+
+		if (--remaining[job] == 0) {
+			jobs.erase(jobs.begin() + index);
+		}
 	}
 }
 

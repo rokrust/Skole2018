@@ -8,11 +8,12 @@ class Phenotype;
 class PhenotypeScheduler;
 class Chromosome;
 class OttoRep;
+class NewRep;
 
 class Phenotype {
 private:
 	int fitness;
-	unsigned int** work_order;
+	int** work_order;
 	bool deadlock_happened;
 
 public:
@@ -22,10 +23,11 @@ public:
 	void calculate_fitness();
 
 	bool is_initialized() { return fitness != 0; }
-	void add_job(unsigned int machine, unsigned int at_job, unsigned int job) { work_order[machine][at_job] = job; }
+	void add_job(int machine, int at_job, int job) { work_order[machine][at_job] = job; }
 	int get_fitness() { return fitness; }
+	int get_fitness() const { return fitness; }
 	bool genotype_mismatch() { return deadlock_happened; }
-	void convert_to_genotype(OttoRep& genotype);
+	void convert_to_genotype(CHROMOSOME_TYPE& genotype);
 
 	bool operator >=(Phenotype rhs) { return this->fitness >= rhs.fitness; }
 	bool operator <=(Phenotype rhs) { return this->fitness <= rhs.fitness; }
@@ -39,21 +41,21 @@ public:
 class PhenotypeScheduler {
 private:
 	
-	unsigned int jobs_left; //Amount of unfinished jobs
-	unsigned int total_execution_time;
+	int jobs_left; //Amount of unfinished jobs
+	int total_execution_time;
 
 	std::vector<int> remaining_execution_time; //Time until each machine is done with its current job
-	std::vector<unsigned int> machine_progress; //How many jobs each machine has been working on
-	std::vector<unsigned int> job_progress; //How many machines have worked on each job
-	std::vector<unsigned int> required_machine; //The next machine required to work on each job
+	std::vector<int> machine_progress; //How many jobs each machine has been working on
+	std::vector<int> job_progress; //How many machines have worked on each job
+	std::vector<int> required_machine; //The next machine required to work on each job
 
 public:
 	PhenotypeScheduler();
 
-	unsigned int lowest_remaining_execution_time();
-	void execution_step(unsigned int step_time, unsigned int** work_order, unsigned int fitness);
-	void assign_jobs(unsigned int** work_order);
-	void deadlock_handler(unsigned int** work_order);
+	int lowest_remaining_execution_time();
+	void execution_step(int step_time, int** work_order, int fitness);
+	void assign_jobs(int** work_order);
+	void deadlock_handler(int** work_order);
 
 	friend Phenotype;
 };
@@ -69,20 +71,16 @@ public:
 	Chromosome();
 	Chromosome(char* str);
 
-	//virtual void n_point_crossover(const Chromosome &rhs_parent, Chromosome& offspring1, Chromosome& offspring2, const unsigned int n_crossover_points) =0;
+	//virtual void n_point_crossover(const Chromosome &rhs_parent, Chromosome& offspring1, Chromosome& offspring2, const int n_crossover_points) =0;
 	virtual void convert_to_phenotype(Phenotype& phenotype) = 0;
 	virtual void mutate(MUTATION_OPERATIONS mutation) = 0;
 
-	const unsigned int& operator [](unsigned int i) const { return chromosome_string[i]; }
-	unsigned int& operator [](unsigned int i) { return chromosome_string[i]; }
-	const unsigned int& operator [](int i) const { return chromosome_string[i]; }
-	unsigned int& operator [](int i) { return chromosome_string[i]; }
-
+	const int& operator [](int i) const { return chromosome_string[i]; }
+	int& operator [](int i) { return chromosome_string[i]; }
 
 protected:
-	unsigned int* chromosome_string;
+	int* chromosome_string;
 };
-
 
 class NewRep : public Chromosome {
 private:
@@ -92,12 +90,14 @@ private:
 	void _mutate_insert2();
 
 public:
-	NewRep() { chromosome_string = new unsigned int[data.N_JOBS*data.N_MACHINES]; }
+	NewRep() { chromosome_string = new int[data.N_JOBS*data.N_MACHINES]; }
 	NewRep(char* str);
 	NewRep(const NewRep& chromosome);
-	
 	~NewRep() { delete[] chromosome_string; }
 	
+	void random_initialization();
+
+	//Virtual functions
 	void convert_to_phenotype(Phenotype& phenotype);
 	void mutate(MUTATION_OPERATIONS mutation);
 
@@ -116,10 +116,10 @@ private:
 	void _mutate_swap_machines();
 
 
-	unsigned int _relative_to_absolute_job(unsigned int machine, unsigned int job);
-	unsigned int _absolute_to_relative_job(unsigned int absolute, unsigned int machine, unsigned int job);
+	int _relative_to_absolute_job(int machine, int job);
+	int _absolute_to_relative_job(int absolute, int machine, int job);
 public:
-	OttoRep() { chromosome_string = new unsigned int[data.N_JOBS*data.N_MACHINES]; random_initialization(); }
+	OttoRep() { chromosome_string = new int[data.N_JOBS*data.N_MACHINES];}
 	OttoRep(char* str);
 	OttoRep(const OttoRep& chromosome);
 	~OttoRep() { delete[] chromosome_string; }
@@ -128,7 +128,7 @@ public:
 
 	void mutate(MUTATION_OPERATIONS mutation);
 
-	//void n_point_crossover(const Chromosome &rhs_parent, Chromosome& offspring1, Chromosome& offspring2, const unsigned int n_crossover_points = 1);
+	//void n_point_crossover(const Chromosome &rhs_parent, Chromosome& offspring1, Chromosome& offspring2, const int n_crossover_points = 1);
 	void convert_to_phenotype(Phenotype& phenotype);
 
 

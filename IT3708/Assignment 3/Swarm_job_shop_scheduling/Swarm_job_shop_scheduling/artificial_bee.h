@@ -2,52 +2,51 @@
 #include "genetics.h"
 #include<vector>
 
-class FoodSource {
+class Bee {
 private:
-	unsigned int time_to_live;
+	int time_to_live;
 
-	OttoRep solution;
+	CHROMOSOME_TYPE solution;
 	Phenotype schedule;
 
 public:
-	FoodSource();
-	FoodSource(char* representation);
-	FoodSource(const FoodSource& food_source) : solution(food_source.solution), 
-												schedule(food_source.schedule), 
-												time_to_live(food_source.time_to_live) { ; }
+	Bee();
+	Bee(char* representation);
+	Bee(const Bee& bee) : solution(bee.solution), schedule(bee.schedule), time_to_live(bee.time_to_live) { ; }
 
 	void create_scout_bee();
-
 	void local_search();
 	bool search_operation(MUTATION_OPERATIONS operation);
 
-	unsigned int get_remaining_time_to_live() { return time_to_live; }
-	unsigned int get_nectar_amount() { return schedule.get_fitness(); }
+	int get_remaining_time_to_live() { return time_to_live; }
+	int get_nectar_amount() { return schedule.get_fitness(); }
 
-	FoodSource operator = (FoodSource rhs);
-	bool operator >= (FoodSource rhs) { return schedule.get_fitness() >= rhs.schedule.get_fitness(); }
-	bool operator <= (FoodSource rhs) { return schedule.get_fitness() <= rhs.schedule.get_fitness(); }
-	bool operator > (FoodSource rhs) { return schedule.get_fitness() > rhs.schedule.get_fitness(); }
-	bool operator < (FoodSource rhs) { return schedule.get_fitness() < rhs.schedule.get_fitness(); }
+	Bee operator = (const Bee& rhs);
+	bool operator >= (Bee rhs) { return schedule.get_fitness() >= rhs.schedule.get_fitness(); }
+	bool operator <= (Bee rhs) { return schedule.get_fitness() <= rhs.schedule.get_fitness(); }
+	bool operator > (Bee rhs) { return schedule.get_fitness() > rhs.schedule.get_fitness(); }
+	bool operator < (Bee rhs) { return schedule.get_fitness() < rhs.schedule.get_fitness(); }
+
+	void print() { std::cout << schedule << std::endl; }
 
 	//Operators
-	friend std::ostream& operator << (std::ostream& out, const FoodSource& food_source);
+	friend std::ostream& operator << (std::ostream& out, const Bee& bee);
 };
 
 class Hive {
 private:
-	std::vector<FoodSource> employed_bees;
-	std::vector<FoodSource*> old_bee;
-	FoodSource elite_bee;
+	std::vector<Bee> employed_bees;
+	std::vector<Bee*> old_bee;
+	Bee elite_bee;
 
 	std::vector<MUTATION_OPERATIONS> adaptive_list;
 	std::vector<MUTATION_OPERATIONS> successful_mutations;
 
 	//Does not keep the old list when winning list is empty.
 	void _refill_adaptive_list();
-	void _run_adaptive_list_operation(FoodSource* bee);
-	void _search_for_new_sources(FoodSource* bee);
-	FoodSource* _tournament_selection();
+	void _run_adaptive_list_operation(Bee* bee);
+	void _search_for_new_sources(Bee* bee);
+	Bee* _tournament_selection();
 
 public:
 	Hive();
@@ -55,5 +54,5 @@ public:
 	void employed_bee_phase();
 	void onlooker_bee_phase();
 	void scout_bee_phase();
-	void run_optimization(unsigned int optimal_value=0);
+	void run_optimization(int optimal_value=0);
 };

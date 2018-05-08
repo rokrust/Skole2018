@@ -8,13 +8,13 @@ Data::Data(char* dir) {
 	
 	//Read first line: N_JOBS and N_MACHINES
 	file >> N_JOBS >> N_MACHINES;
-
+	
 	//Allocate arrays
 	_allocate_members();
 
 	//Store every execution time and job order in the corresponding class members
-	unsigned int exec, job;
-	unsigned int machine_nbr = 0, job_nbr = 0;
+	int exec, job;
+	int machine_nbr = 0, job_nbr = 0;
 
 	while (file >> job >> exec) {
 		work_order[job_nbr][machine_nbr] = job;
@@ -28,6 +28,7 @@ Data::Data(char* dir) {
 		}
 	}
 	std::cout << *this;
+
 	file.close();
 }
 
@@ -74,12 +75,12 @@ Data::~Data() {
 }
 
 void Data::_allocate_members() {
-	execution_time = new unsigned int*[N_JOBS];
-	work_order = new unsigned int*[N_JOBS];
+	execution_time = new int*[N_JOBS];
+	work_order = new int*[N_JOBS];
 	
 	for (int i = 0; i < N_JOBS; i++) {
-		execution_time[i] = new unsigned int[N_MACHINES];
-		work_order[i] = new unsigned int[N_MACHINES];
+		execution_time[i] = new int[N_MACHINES];
+		work_order[i] = new int[N_MACHINES];
 	}
 }
 

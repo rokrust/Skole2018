@@ -14,6 +14,7 @@ public:
 	Bee(char* representation);
 	Bee(const Bee& bee) : solution(bee.solution), schedule(bee.schedule), time_to_live(bee.time_to_live) { ; }
 
+	void store_solution(char* dir) { schedule.store_schedule_as_csv(dir); }
 	void create_scout_bee();
 	void local_search();
 	bool search_operation(MUTATION_OPERATIONS operation);

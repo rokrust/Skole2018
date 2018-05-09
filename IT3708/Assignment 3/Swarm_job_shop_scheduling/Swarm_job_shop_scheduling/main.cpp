@@ -12,7 +12,7 @@
 Data data;
 
 int main(int argc, char* argv[]) {
-	/*
+	
 	char *dir = argv[1];
 	data = Data(dir);
 
@@ -35,12 +35,12 @@ int main(int argc, char* argv[]) {
 			hive.run_optimization(optimal_value);
 		}
 	}
-	*/
 	
-	data = Data(TEST_DIR);
-	AntColony colony;
-	colony.run_optimization();
-
-	system("PAUSE");
+	
+	//data = Data(TEST_DIR);
+	//AntColony colony;
+	//colony.run_optimization();
+	//Hive hive;
+	//hive.run_optimization(OPTIMAL_VALUE-30);
 	return 0;
 }

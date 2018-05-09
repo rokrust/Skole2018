@@ -28,6 +28,7 @@ public:
 	int get_fitness() const { return fitness; }
 	bool genotype_mismatch() { return deadlock_happened; }
 	void convert_to_genotype(CHROMOSOME_TYPE& genotype);
+	void store_schedule_as_csv(char* dir);
 
 	bool operator >=(Phenotype rhs) { return this->fitness >= rhs.fitness; }
 	bool operator <=(Phenotype rhs) { return this->fitness <= rhs.fitness; }
@@ -55,6 +56,7 @@ public:
 	int lowest_remaining_execution_time();
 	void execution_step(int step_time, int** work_order, int fitness);
 	void assign_jobs(int** work_order);
+	void assign_jobs_csv(std::ofstream&, int** work_order, int current_time);
 	void deadlock_handler(int** work_order);
 
 	friend Phenotype;

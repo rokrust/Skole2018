@@ -1,7 +1,9 @@
 #pragma once
 #define INF 999999
 #define OPTIMAL_VALUE 1130
-#define TEST_DIR "../Test Data/2.txt"
+
+#define CSV_DIR "../solution.csv"
+#define TEST_DIR "../Test Data/4.txt"
 #define CHROMOSOME_TYPE NewRep				//Chosen chromosome representation
 //#define CHROMOSOME_TYPE OttoRep
 

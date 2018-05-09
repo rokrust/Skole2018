@@ -3,6 +3,7 @@
 #include <vector>
 #include <cstdlib>
 #include <algorithm>
+#include <fstream>
 
 //Chromosome
 Chromosome::Chromosome() {
@@ -315,6 +316,28 @@ void Phenotype::convert_to_genotype(CHROMOSOME_TYPE& chromosome) {
 	}
 }
 
+void Phenotype::store_schedule_as_csv(char* dir) {
+	std::ofstream file(dir, std::ios::out);
+	file << "Task,Start,Finish,Job,Description\n";
+
+
+	PhenotypeScheduler scheduler;
+	fitness = 0;
+	scheduler.assign_jobs_csv(file, work_order, fitness);
+
+	while (scheduler.jobs_left) {
+
+		int time_step = scheduler.lowest_remaining_execution_time();
+		fitness += time_step;
+		scheduler.execution_step(time_step, work_order, fitness);
+
+		scheduler.assign_jobs_csv(file, work_order, fitness);
+	}
+
+	file.close();
+}
+
+
 std::ostream& operator << (std::ostream& out, const Phenotype& schedule) {
 	for (int machine = 0; machine < data.N_MACHINES; machine++) {
 		for (int job = 0; job < data.N_JOBS; job++) {
@@ -329,6 +352,31 @@ std::ostream& operator << (std::ostream& out, const Phenotype& schedule) {
 
 
 //PhenotypeScheduler
+void PhenotypeScheduler::assign_jobs_csv(std::ofstream& file, int** work_order, int current_time) {
+	static int job_id = 0;
+	for (int machine = 0; machine < data.N_MACHINES; machine++) {
+
+		if (machine_progress[machine] == data.N_JOBS) {
+			continue;
+		}
+
+		int next_job = work_order[machine][machine_progress[machine]];
+
+		if (required_machine[next_job] == machine) {
+
+			if (remaining_execution_time[machine] <= 0) {
+				remaining_execution_time[machine] = data.execution_time[next_job][job_progress[next_job]];
+				file << "Machine " << machine << ',' << current_time << ',' << remaining_execution_time[machine]+current_time << ",Job " << next_job << ",J" << job_id++ << '\n';
+			}
+		}
+
+		else {
+			remaining_execution_time[machine] = -1;
+		}
+
+	}
+}
+
 
 PhenotypeScheduler::PhenotypeScheduler() {
 	remaining_execution_time.resize(data.N_MACHINES, 0);

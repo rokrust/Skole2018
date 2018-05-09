@@ -227,6 +227,7 @@ void Hive::run_optimization(int optimal_value) {
 
 	std::cout << "Best estimate: " << elite_bee.get_nectar_amount() << std::endl;
 	elite_bee.print();
+	elite_bee.store_solution(CSV_DIR);
 }
 
 std::ostream& operator << (std::ostream& out, const Bee& bee) {
